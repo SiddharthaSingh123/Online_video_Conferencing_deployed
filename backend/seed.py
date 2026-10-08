@@ -83,6 +83,26 @@ def seed(db: Session) -> None:
             )
         db.commit()
 
+    # 1 live meeting with the host and 3 guests already in it, to demo the host controls
+    started = now - timedelta(minutes=10)
+    live = Meeting(
+        meeting_code=generate_meeting_code(db),
+        title="Team standup (demo)",
+        host_id=user.id,
+        type="instant",
+        status="live",
+        created_at=started,
+        started_at=started,
+    )
+    db.add(live)
+    db.commit()
+    db.refresh(live)
+
+    db.add(Participant(meeting_id=live.id, user_id=user.id, display_name=user.name, role="host", joined_at=started))
+    for name, muted in [("Priya Patel", False), ("Sam Rivera", False), ("Jordan Lee", True)]:
+        db.add(Participant(meeting_id=live.id, display_name=name, role="participant", is_muted=muted, joined_at=started))
+    db.commit()
+
 
 def run_seed() -> None:
     db = SessionLocal()

@@ -1,6 +1,6 @@
 from datetime import datetime, timezone
 
-from sqlalchemy import Column, Integer, String, DateTime, ForeignKey
+from sqlalchemy import Boolean, Column, DateTime, ForeignKey, Integer, String
 from sqlalchemy.orm import relationship
 
 from database import Base
@@ -14,6 +14,8 @@ class Participant(Base):
     user_id = Column(Integer, ForeignKey("users.id"), nullable=True)
     display_name = Column(String, nullable=False)
     role = Column(String, nullable=False, default="participant")  # host | participant
+    is_muted = Column(Boolean, nullable=False, default=False)
+    is_removed = Column(Boolean, nullable=False, default=False)  # removed by the host
     joined_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
     left_at = Column(DateTime, nullable=True)
 

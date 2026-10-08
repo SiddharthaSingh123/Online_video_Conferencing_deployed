@@ -12,6 +12,8 @@ export type Participant = {
   id: number;
   display_name: string;
   role: "host" | "participant";
+  is_muted: boolean;
+  is_removed: boolean;
   joined_at: string;
   left_at: string | null;
 };
@@ -81,6 +83,8 @@ export const api = {
 
   getRecentMeetings: () => request<Meeting[]>("/meetings/recent"),
 
+  getLiveMeetings: () => request<Meeting[]>("/meetings/live"),
+
   getMeeting: (code: string) => request<MeetingDetail>(`/meetings/${code}`),
 
   createInstantMeeting: (title?: string) =>
@@ -117,4 +121,23 @@ export const api = {
 
   endMeeting: (code: string) =>
     request<Meeting>(`/meetings/${code}/end`, { method: "POST" }),
+
+  // Host controls: the host sends their own participant id to prove they are the host.
+  muteAll: (code: string, hostParticipantId: number) =>
+    request<MeetingDetail>(`/meetings/${code}/mute-all`, {
+      method: "POST",
+      body: JSON.stringify({ requester_participant_id: hostParticipantId }),
+    }),
+
+  removeParticipant: (code: string, participantId: number, hostParticipantId: number) =>
+    request<MeetingDetail>(`/meetings/${code}/participants/${participantId}/remove`, {
+      method: "POST",
+      body: JSON.stringify({ requester_participant_id: hostParticipantId }),
+    }),
+
+  setMuted: (code: string, participantId: number, muted: boolean) =>
+    request<Participant>(`/meetings/${code}/participants/${participantId}/mute`, {
+      method: "POST",
+      body: JSON.stringify({ muted }),
+    }),
 };

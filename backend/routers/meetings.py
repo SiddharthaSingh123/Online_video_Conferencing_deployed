@@ -11,10 +11,14 @@ from schemas import (
     MeetingOut,
     MeetingDetailOut,
     JoinOut,
+    HostActionRequest,
     JoinRequest,
     LeaveRequest,
+    MuteRequest,
+    ParticipantOut,
 )
-from services.meeting_service import generate_meeting_code, build_invite_link
+from services import participant_service
+from services.meeting_service import build_invite_link, generate_meeting_code, get_open_meeting, list_live
 
 router = APIRouter(prefix="/meetings", tags=["meetings"])
 
@@ -27,11 +31,10 @@ def _to_meeting_out(meeting: Meeting) -> MeetingOut:
 
 
 def _to_meeting_detail_out(meeting: Meeting) -> MeetingDetailOut:
-    active_participants = [p for p in meeting.participants if p.left_at is None]
     return MeetingDetailOut(
         **{c: getattr(meeting, c) for c in MeetingOut.model_fields if c != "invite_link"},
         invite_link=build_invite_link(meeting.meeting_code),
-        participants=active_participants,
+        participants=participant_service.visible_participants(meeting),
     )
 
 
@@ -40,14 +43,6 @@ def _get_default_user(db: Session) -> User:
     if not user:
         raise HTTPException(status_code=500, detail="No default user seeded")
     return user
-
-
-def _get_open_meeting(db: Session, code: str) -> Meeting:
-    """Meeting that can still be joined. Ended meetings are treated as not found."""
-    meeting = db.query(Meeting).filter(Meeting.meeting_code == code).first()
-    if not meeting or meeting.status == "ended":
-        raise HTTPException(status_code=404, detail="Meeting not found")
-    return meeting
 
 
 def _go_live(meeting: Meeting) -> None:
@@ -134,18 +129,24 @@ def list_recent(db: Session = Depends(get_db)):
     return [_to_meeting_out(m) for m in meetings]
 
 
+@router.get("/live", response_model=list[MeetingOut])
+def list_live_meetings(db: Session = Depends(get_db)):
+    return [_to_meeting_out(m) for m in list_live(db)]
+
+
 @router.get("/{code}", response_model=MeetingDetailOut)
 def get_meeting(code: str, db: Session = Depends(get_db)):
-    meeting = _get_open_meeting(db, code)
+    meeting = get_open_meeting(db, code)
     return _to_meeting_detail_out(meeting)
 
 
 @router.post("/{code}/join", response_model=JoinOut)
 def join_meeting(code: str, payload: JoinRequest, db: Session = Depends(get_db)):
-    meeting = _get_open_meeting(db, code)
+    meeting = get_open_meeting(db, code)
     display_name = payload.display_name.strip()
     if not display_name:
         raise HTTPException(status_code=400, detail="Display name is required")
+    participant_service.check_can_join(meeting, display_name)
 
     _go_live(meeting)
     participant = Participant(
@@ -165,7 +166,7 @@ def join_meeting(code: str, payload: JoinRequest, db: Session = Depends(get_db))
 def start_meeting(code: str, db: Session = Depends(get_db)):
     """The host enters the room: the meeting goes live and the host gets an active participant row.
     Safe to call again (e.g. on page refresh): it reuses the host's existing row."""
-    meeting = _get_open_meeting(db, code)
+    meeting = get_open_meeting(db, code)
     host = _get_default_user(db)
 
     _go_live(meeting)
@@ -205,6 +206,28 @@ def leave_meeting(code: str, payload: LeaveRequest, db: Session = Depends(get_db
     participant.left_at = datetime.now(timezone.utc)
     db.commit()
     return {"status": "ok"}
+
+
+@router.post("/{code}/mute-all", response_model=MeetingDetailOut)
+def mute_all(code: str, payload: HostActionRequest, db: Session = Depends(get_db)):
+    meeting = get_open_meeting(db, code)
+    participant_service.mute_all(db, meeting, payload.requester_participant_id)
+    db.refresh(meeting)
+    return _to_meeting_detail_out(meeting)
+
+
+@router.post("/{code}/participants/{participant_id}/remove", response_model=MeetingDetailOut)
+def remove_participant(code: str, participant_id: int, payload: HostActionRequest, db: Session = Depends(get_db)):
+    meeting = get_open_meeting(db, code)
+    participant_service.remove_participant(db, meeting, participant_id, payload.requester_participant_id)
+    db.refresh(meeting)
+    return _to_meeting_detail_out(meeting)
+
+
+@router.post("/{code}/participants/{participant_id}/mute", response_model=ParticipantOut)
+def set_participant_muted(code: str, participant_id: int, payload: MuteRequest, db: Session = Depends(get_db)):
+    meeting = get_open_meeting(db, code)
+    return participant_service.set_muted(db, meeting, participant_id, payload.muted)
 
 
 @router.post("/{code}/end", response_model=MeetingOut)

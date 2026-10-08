@@ -1,10 +1,11 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { CalendarDays, LoaderCircle, Plus, Video, type LucideIcon } from "lucide-react";
 import AppShell from "@/components/AppShell";
 import JoinModal from "@/components/JoinModal";
+import Notice from "@/components/Notice";
 import ScheduleModal from "@/components/ScheduleModal";
 import UpcomingMeetings from "@/components/UpcomingMeetings";
 import RecentMeetings from "@/components/RecentMeetings";
@@ -55,6 +56,10 @@ export default function DashboardPage() {
   return (
     <AppShell user={user}>
       <div className="mx-auto flex max-w-[730px] flex-col items-center px-4 pb-10 pt-8 sm:px-6 sm:pt-10 lg:max-w-5xl">
+        {/* Reads ?notice= from the URL; Next.js needs a Suspense boundary around that on a static page. */}
+        <Suspense fallback={null}>
+          <Notice />
+        </Suspense>
         <h1 className="h-10 text-4xl font-bold tracking-tight text-ink sm:h-[60px] sm:text-5xl">
           {now ? formatClock(now) : ""}
         </h1>

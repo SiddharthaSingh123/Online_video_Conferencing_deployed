@@ -5,7 +5,7 @@ from .meeting import (
     MeetingDetailOut,
     JoinOut,
 )
-from .participant import JoinRequest, LeaveRequest, ParticipantOut
+from .participant import HostActionRequest, JoinRequest, LeaveRequest, MuteRequest, ParticipantOut
 
 __all__ = [
     "InstantMeetingCreate",
@@ -13,7 +13,9 @@ __all__ = [
     "MeetingOut",
     "MeetingDetailOut",
     "JoinOut",
+    "HostActionRequest",
     "JoinRequest",
     "LeaveRequest",
+    "MuteRequest",
     "ParticipantOut",
 ]

@@ -9,13 +9,14 @@ A Zoom-style video meetings web app built as a 2-hour full-stack assignment. You
 
 ## Features
 
-- **Dashboard**: live clock and date, New meeting / Join / Schedule tiles, Upcoming and Recent meeting lists from the API, empty states.
+- **Dashboard**: live clock and date, New meeting / Join / Schedule tiles, Upcoming and Recent meeting lists from the API, empty states. Meetings in progress are listed with a **Rejoin** button so the host can get back in.
 - **Instant meeting**: one click creates a live meeting and drops you into the room as host.
 - **Join meeting**: accepts `123 4567 890`, `1234567890`, or a full `.../j/1234567890` link; shows "Meeting not found" for bad IDs.
 - **Schedule meeting**: title, description, date, time and duration; shows the meeting ID and a copyable invite link when saved.
 - **Pre-join screen** (`/j/{code}`): camera preview via `getUserMedia`, mic/video toggles, name input; falls back to an initials avatar and explains why if the camera can't be used.
 - **Mic check**: the mic icon fills green as you speak (Web Audio `AnalyserNode`), and **Test mic** on the pre-join screen records 3 seconds and plays them back (`MediaRecorder`).
-- **Meeting room** (`/meeting/{code}`): participant tile grid (your own tile shows your camera), mute, video, participants panel, copy invite link, Leave (participant) / End (host).
+- **Meeting room** (`/meeting/{code}`): participant tile grid (your own tile shows your camera), mute, video, participants panel with each person's mic state, copy invite link, Leave (participant) / End (host).
+- **Host controls**: in the Participants panel the host can **Mute all** and **Remove** a participant (with a confirm step). The room polls the meeting every 3 seconds, so a muted participant's mic turns off (they can unmute themselves), and a removed participant's camera and mic stop and they are sent back to the dashboard with "You were removed by the host".
 
 ## Tech stack
 
@@ -39,7 +40,8 @@ A Zoom-style video meetings web app built as a 2-hour full-stack assignment. You
 │   ├── schemas/                 # Pydantic request/response models
 │   ├── routers/                 # HTTP endpoints: meetings.py, users.py
 │   ├── services/
-│   │   └── meeting_service.py   # Unique meeting code generation, invite links
+│   │   ├── meeting_service.py   # Unique meeting codes, invite links, open/live meeting lookups
+│   │   └── participant_service.py # Who is in a meeting; host controls (mute all, remove)
 │   ├── requirements.txt
 │   └── .env.example
 └── frontend/
@@ -80,7 +82,9 @@ uvicorn main:app --reload
 
 The database file and demo data are created automatically on first start. API docs: http://localhost:8000/docs
 
-To reset the demo data, stop the server, delete `backend/zoom.db`, and start it again.
+The demo data includes a live meeting, **Team standup (demo)**, with 3 guests in it: click **Rejoin** on the dashboard to try the host controls.
+
+There are no migrations (`create_all` only creates missing tables, it never adds columns to existing ones). To reset the demo data, or after pulling changes that add columns, stop the server, delete `backend/zoom.db`, and start it again.
 
 ### 2. Frontend (http://localhost:3000)
 
@@ -141,6 +145,8 @@ All datetimes are stored in UTC. The frontend converts them to the viewer's loca
 | user_id      | integer  | Foreign key → `users.id`, nullable (guests)      |
 | display_name | string   |                                                  |
 | role         | string   | `host` or `participant`                          |
+| is_muted     | boolean  | Default false. Set by "Mute all" or by the participant |
+| is_removed   | boolean  | Default false. Set when the host removes the participant |
 | joined_at    | datetime |                                                  |
 | left_at      | datetime | Nullable. `NULL` means still in the meeting      |
 
@@ -160,11 +166,15 @@ All datetimes are stored in UTC. The frontend converts them to the viewer's loca
 | POST   | `/meetings`                  | `{title, description?, scheduled_start, duration_minutes}` | Create a scheduled meeting                                                     |
 | GET    | `/meetings/upcoming`         |                                                           | Scheduled meetings starting from now, soonest first                            |
 | GET    | `/meetings/recent`           |                                                           | Last 10 ended meetings, most recent first                                      |
-| GET    | `/meetings/{code}`           |                                                           | Meeting with its current participants. 404 if missing or ended                 |
-| POST   | `/meetings/{code}/join`      | `{display_name}`                                          | Add a participant; a scheduled meeting becomes live. Returns `{meeting, participant}` |
+| GET    | `/meetings/live`             |                                                           | Meetings in progress, newest first                                             |
+| GET    | `/meetings/{code}`           |                                                           | Meeting with its current participants (incl. `is_muted`, `is_removed`); removed people are left out. 404 if missing or ended |
+| POST   | `/meetings/{code}/join`      | `{display_name}`                                          | Add a participant; a scheduled meeting becomes live. Returns `{meeting, participant}`. 403 if that name was removed by the host |
 | POST   | `/meetings/{code}/start`     |                                                           | Host enters the room; meeting becomes live. Returns `{meeting, participant}`. Safe to repeat |
 | POST   | `/meetings/{code}/leave`     | `{participant_id}`                                        | Set the participant's `left_at`                                                |
 | POST   | `/meetings/{code}/end`       |                                                           | End the meeting (moves it to Recent) and mark everyone as left                 |
+| POST   | `/meetings/{code}/mute-all`  | `{requester_participant_id}`                              | Host only (403 otherwise): mute every non-host participant                     |
+| POST   | `/meetings/{code}/participants/{id}/remove` | `{requester_participant_id}`               | Host only (403 otherwise), can't remove the host (400): sets `is_removed` and `left_at` |
+| POST   | `/meetings/{code}/participants/{id}/mute`   | `{muted}`                                  | A participant mutes or unmutes themselves                                      |
 
 Meeting and invite responses include `invite_link` (`{FRONTEND_URL}/j/{code}`). Errors use FastAPI's `{detail: "..."}` format.
 
@@ -172,21 +182,22 @@ Meeting and invite responses include `invite_link` (`{FRONTEND_URL}/j/{code}`). 
 
 - **No authentication.** One seeded user ("Kartikeya") is always the logged-in user and hosts every meeting created from the dashboard.
 - **No real audio/video between people (no WebRTC).** Each person sees their own camera; other participants appear as avatar tiles. This was a deliberate scope decision for the time limit.
-- **No polling or websockets.** The participant list is fetched when the room loads and again whenever the Participants panel is opened.
+- **Polling, no websockets.** The meeting room re-fetches the meeting every 3 seconds to pick up joins, leaves, mutes and removals.
+- **Host-only actions** send the host's own participant ID (`requester_participant_id`); the server checks it belongs to this meeting's host. Without logins this is a simple check, not real security.
 - **Identity is per browser tab.** Your display name, host status and participant ID live in `sessionStorage`.
 - **Meeting IDs are 10 digits**, shown as `123 4567 890`.
 - **SQLite on Render's free tier is not persistent.** Data resets when the service redeploys or restarts; the startup seed recreates the demo data so the app never boots empty.
 
 ## Not built (time limit)
 
-- Host controls: mute or remove participants, waiting room, lock meeting.
-- Fully responsive design: the meeting room grid adapts to screen size, but the dashboard is desktop-first.
+- More host controls: mute one person, waiting room, lock meeting, make someone else host.
 - In-meeting chat, reactions, screen sharing, recordings.
-- Real-time updates: participants are not notified when someone joins or when the host ends the meeting.
+- Instant updates: changes reach other people through polling, so they can take up to 3 seconds to show.
 
 ## Known limitations
 
 - Closing the tab without clicking Leave keeps that person listed in the meeting.
+- A removed participant is blocked by display name only, so they could rejoin under a different name.
 - Turning video off pauses the camera track rather than releasing it, so the camera light stays on.
 - On Render's free tier the first request after inactivity can take up to a minute while the service wakes up.
 

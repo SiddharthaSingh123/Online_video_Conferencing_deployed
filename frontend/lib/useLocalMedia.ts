@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 type MediaResult = { stream: MediaStream | null; error: string | null };
 
@@ -61,6 +61,8 @@ async function requestMedia(): Promise<MediaResult> {
 export function useLocalMedia(micOn: boolean, videoOn: boolean) {
   const [stream, setStream] = useState<MediaStream | null>(null);
   const [error, setError] = useState<string | null>(null);
+  // Same stream as state, kept in a ref so stop() below never needs to change.
+  const streamRef = useRef<MediaStream | null>(null);
 
   useEffect(() => {
     // `cancelled` covers the page closing before the browser answers.
@@ -73,6 +75,7 @@ export function useLocalMedia(micOn: boolean, videoOn: boolean) {
         return;
       }
       acquired = result.stream;
+      streamRef.current = result.stream;
       setStream(result.stream);
       setError(result.error);
     });
@@ -91,9 +94,14 @@ export function useLocalMedia(micOn: boolean, videoOn: boolean) {
     stream?.getVideoTracks().forEach((track) => (track.enabled = videoOn));
   }, [stream, videoOn]);
 
+  // Turns the camera and mic off right away (e.g. when the host removes you).
+  const stop = useCallback(() => {
+    if (streamRef.current) stopTracks(streamRef.current);
+  }, []);
+
   const hasVideo = (stream?.getVideoTracks().length ?? 0) > 0;
   const hasAudio = (stream?.getAudioTracks().length ?? 0) > 0;
   // Still waiting for the browser's permission prompt to be answered.
   const waiting = stream === null && error === null;
-  return { stream, hasVideo, hasAudio, error, waiting };
+  return { stream, hasVideo, hasAudio, error, waiting, stop };
 }

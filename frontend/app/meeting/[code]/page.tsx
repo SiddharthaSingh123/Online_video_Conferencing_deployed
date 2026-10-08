@@ -20,6 +20,8 @@ import {
   saveParticipantId,
 } from "@/lib/utils";
 
+const POLL_INTERVAL_MS = 3000;
+
 // 1 column on mobile, 2 on tablet, as many as fit on desktop. A lone tile stays one big centered tile.
 function gridClass(count: number): string {
   if (count === 1) return "max-w-4xl grid-cols-1";
@@ -37,7 +39,7 @@ export default function MeetingRoomPage() {
 
   const [micOn, setMicOn] = useState(true);
   const [videoOn, setVideoOn] = useState(true);
-  const { stream, hasVideo, error: mediaError } = useLocalMedia(micOn, videoOn);
+  const { stream, hasVideo, error: mediaError, stop: stopMedia } = useLocalMedia(micOn, videoOn);
 
   const [showParticipants, setShowParticipants] = useState(false);
   const [inviteCopied, setInviteCopied] = useState(false);
@@ -46,6 +48,8 @@ export default function MeetingRoomPage() {
 
   // React dev mode runs effects twice; this stops us from "starting" the meeting twice.
   const entered = useRef(false);
+  // Set once I'm on my way out, so a late poll result can't redirect me a second time.
+  const leavingRef = useRef(false);
 
   useEffect(() => {
     if (entered.current) return;
@@ -53,7 +57,7 @@ export default function MeetingRoomPage() {
 
     // Work out who "I" am in this meeting:
     // - came through the pre-join screen -> we saved our participant id
-    // - host (New meeting / Start button) -> /start gives us the host's participant row
+    // - host (New meeting / Start / Rejoin button) -> /start gives us the host's participant row
     // - neither -> go to the pre-join screen first
     const participantId = loadParticipantId(code);
     let entry: Promise<JoinResult | null>;
@@ -79,7 +83,13 @@ export default function MeetingRoomPage() {
         }
         saveParticipantId(code, result.participant.id); // so a page refresh keeps the same seat
         const prefs = loadMediaPrefs();
-        setMicOn(prefs.micOn);
+        // Start muted if I chose that on the pre-join screen or the host muted me earlier,
+        // and make sure the server shows the same state to everyone else.
+        const startMuted = !prefs.micOn || result.participant.is_muted;
+        if (startMuted !== result.participant.is_muted) {
+          api.setMuted(code, result.participant.id, startMuted).catch(() => {});
+        }
+        setMicOn(!startMuted);
         setVideoOn(prefs.videoOn);
         setMeeting(result.meeting);
         setMe(result.participant);
@@ -90,18 +100,53 @@ export default function MeetingRoomPage() {
       });
   }, [code, router]);
 
-  // No polling: the participant list is re-fetched whenever the panel is opened.
-  function toggleParticipants() {
-    const opening = !showParticipants;
-    setShowParticipants(opening);
-    if (opening) {
+  // Poll every 3 seconds to pick up joins, leaves, mutes and removals (no websockets).
+  useEffect(() => {
+    if (!me) return;
+    let cancelled = false; // ignores a slow response that arrives after this effect was replaced
+
+    // Leave without calling the API: the host removed me or ended the meeting.
+    const exit = (notice: "removed" | "ended") => {
+      leavingRef.current = true;
+      stopMedia();
+      clearMeetingSession(code);
+      router.replace(`/?notice=${notice}`);
+    };
+
+    const timer = setInterval(() => {
       api
         .getMeeting(code)
-        .then(setMeeting)
+        .then((latest) => {
+          if (cancelled || leavingRef.current) return;
+          const mine = latest.participants.find((p) => p.id === me.id);
+          // Removed people are left out of the list, so if I'm missing, the host removed me.
+          if (!mine || mine.is_removed) {
+            exit("removed");
+            return;
+          }
+          // The server says I'm muted but my mic is on: the host muted me. (I can unmute again.)
+          if (mine.is_muted && micOn) setMicOn(false);
+          setMeeting(latest);
+        })
         .catch((err: Error) => {
-          if (err instanceof ApiError && err.status === 404) setNotFound(true);
+          if (cancelled || leavingRef.current) return;
+          if (err instanceof ApiError && err.status === 404) exit("ended");
+          // Any other error (e.g. a network blip): just try again on the next tick.
         });
-    }
+    }, POLL_INTERVAL_MS);
+
+    return () => {
+      cancelled = true;
+      clearInterval(timer);
+    };
+  }, [code, me, micOn, router, stopMedia]);
+
+  // Mute/unmute myself and tell the server, so others see it and a host "mute all" can be undone.
+  function toggleMic() {
+    if (!me) return;
+    const nextOn = !micOn;
+    setMicOn(nextOn);
+    api.setMuted(code, me.id, !nextOn).catch(() => setActionError("Couldn't update your mute status"));
   }
 
   async function handleInvite() {
@@ -114,6 +159,7 @@ export default function MeetingRoomPage() {
   // Host ends the meeting for everyone (moves it to Recent); a participant just leaves.
   async function handleLeave() {
     if (!me) return;
+    leavingRef.current = true;
     setLeaving(true);
     setActionError("");
     try {
@@ -122,6 +168,7 @@ export default function MeetingRoomPage() {
       clearMeetingSession(code);
       router.push("/");
     } catch (err) {
+      leavingRef.current = false;
       setActionError((err as Error).message);
       setLeaving(false);
     }
@@ -154,6 +201,11 @@ export default function MeetingRoomPage() {
     a.id === me.id ? -1 : b.id === me.id ? 1 : 0
   );
 
+  // Host controls. The responses contain the updated participant list.
+  const muteAll = async () => setMeeting(await api.muteAll(code, me.id));
+  const removeParticipant = async (participantId: number) =>
+    setMeeting(await api.removeParticipant(code, participantId, me.id));
+
   return (
     <div className="flex h-dvh flex-col bg-room text-white">
       <header className="flex h-12 shrink-0 items-center gap-2 px-3 sm:gap-3 sm:px-4">
@@ -180,7 +232,7 @@ export default function MeetingRoomPage() {
                   label={p.role === "host" ? "(Host)" : undefined}
                   stream={isMe ? stream : null}
                   showVideo={isMe && videoOn && hasVideo}
-                  micOff={isMe && !micOn}
+                  micOff={isMe ? !micOn : p.is_muted}
                 />
               );
             })}
@@ -192,6 +244,9 @@ export default function MeetingRoomPage() {
             participants={participants}
             myId={me.id}
             myMicOn={micOn}
+            isHost={isHost}
+            onMuteAll={muteAll}
+            onRemove={removeParticipant}
             onClose={() => setShowParticipants(false)}
           />
         )}
@@ -207,7 +262,7 @@ export default function MeetingRoomPage() {
         <ToolbarButton
           icon={micOn ? <MicLevelIcon stream={stream} /> : <MicOff className="size-5 text-danger" />}
           label={micOn ? "Mute" : "Unmute"}
-          onClick={() => setMicOn((v) => !v)}
+          onClick={toggleMic}
         />
         <ToolbarButton
           icon={videoOn ? <Video className="size-5" /> : <VideoOff className="size-5 text-danger" />}
@@ -219,7 +274,7 @@ export default function MeetingRoomPage() {
           label="Participants"
           badge={meeting.participants.length}
           active={showParticipants}
-          onClick={toggleParticipants}
+          onClick={() => setShowParticipants((open) => !open)}
         />
         <ToolbarButton
           icon={inviteCopied ? <Check className="size-5" /> : <UserPlus className="size-5" />}
