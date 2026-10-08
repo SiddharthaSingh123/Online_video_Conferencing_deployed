@@ -91,3 +91,43 @@ export function markAsHost(code: string): void {
 export function isHostOf(code: string): boolean {
   return sessionStorage.getItem(`host:${code}`) === "true";
 }
+
+export function saveParticipantId(code: string, id: number): void {
+  sessionStorage.setItem(`participant:${code}`, String(id));
+}
+
+export function loadParticipantId(code: string): number | null {
+  const value = sessionStorage.getItem(`participant:${code}`);
+  return value ? Number(value) : null;
+}
+
+export function clearMeetingSession(code: string): void {
+  sessionStorage.removeItem(`host:${code}`);
+  sessionStorage.removeItem(`participant:${code}`);
+}
+
+// Mic/camera choices made on the pre-join screen, carried into the meeting room.
+export type MediaPrefs = { micOn: boolean; videoOn: boolean };
+
+export function saveMediaPrefs(prefs: MediaPrefs): void {
+  sessionStorage.setItem("mediaPrefs", JSON.stringify(prefs));
+}
+
+export function loadMediaPrefs(): MediaPrefs {
+  try {
+    const saved = sessionStorage.getItem("mediaPrefs");
+    if (saved) return JSON.parse(saved) as MediaPrefs;
+  } catch {
+    // ignore malformed value
+  }
+  return { micOn: true, videoOn: true };
+}
+
+// Picks a stable color for a name so each participant's avatar keeps the same color.
+const AVATAR_COLORS = ["#0B5CFF", "#FF742E", "#12A37F", "#8E4EC6", "#E5484D", "#0091B5", "#D6409F"];
+
+export function avatarColor(name: string): string {
+  let sum = 0;
+  for (const ch of name) sum += ch.charCodeAt(0);
+  return AVATAR_COLORS[sum % AVATAR_COLORS.length];
+}

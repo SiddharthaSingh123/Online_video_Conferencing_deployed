@@ -16,6 +16,7 @@ import {
   Video,
   type LucideIcon,
 } from "lucide-react";
+import Logo from "@/components/Logo";
 import type { User } from "@/lib/api";
 import { getInitials } from "@/lib/utils";
 
@@ -46,10 +47,7 @@ export default function AppShell({ user, children }: { user: User | null; childr
 function TopNav({ user }: { user: User | null }) {
   return (
     <header className="flex h-[52px] shrink-0 items-center gap-4 px-4">
-      <div className="w-[88px] leading-none">
-        <div className="text-[13px] font-extrabold tracking-tight text-zoom-blue">zoom</div>
-        <div className="text-[17px] font-semibold text-ink">Workplace</div>
-      </div>
+      <Logo />
 
       <div className="flex flex-1 items-center justify-center gap-3">
         <ChevronLeft className="size-5 text-muted" />

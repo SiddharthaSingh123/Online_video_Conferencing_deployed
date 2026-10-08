@@ -10,6 +10,7 @@ from schemas import (
     ScheduledMeetingCreate,
     MeetingOut,
     MeetingDetailOut,
+    JoinOut,
     JoinRequest,
     LeaveRequest,
 )
@@ -39,6 +40,20 @@ def _get_default_user(db: Session) -> User:
     if not user:
         raise HTTPException(status_code=500, detail="No default user seeded")
     return user
+
+
+def _get_open_meeting(db: Session, code: str) -> Meeting:
+    """Meeting that can still be joined. Ended meetings are treated as not found."""
+    meeting = db.query(Meeting).filter(Meeting.meeting_code == code).first()
+    if not meeting or meeting.status == "ended":
+        raise HTTPException(status_code=404, detail="Meeting not found")
+    return meeting
+
+
+def _go_live(meeting: Meeting) -> None:
+    if meeting.status == "scheduled":
+        meeting.status = "live"
+        meeting.started_at = datetime.now(timezone.utc)
 
 
 @router.post("/instant", response_model=MeetingOut)
@@ -115,32 +130,56 @@ def list_recent(db: Session = Depends(get_db)):
 
 @router.get("/{code}", response_model=MeetingDetailOut)
 def get_meeting(code: str, db: Session = Depends(get_db)):
-    meeting = db.query(Meeting).filter(Meeting.meeting_code == code).first()
-    if not meeting or meeting.status == "ended":
-        raise HTTPException(status_code=404, detail="Meeting not found")
+    meeting = _get_open_meeting(db, code)
     return _to_meeting_detail_out(meeting)
 
 
-@router.post("/{code}/join", response_model=MeetingDetailOut)
+@router.post("/{code}/join", response_model=JoinOut)
 def join_meeting(code: str, payload: JoinRequest, db: Session = Depends(get_db)):
-    meeting = db.query(Meeting).filter(Meeting.meeting_code == code).first()
-    if not meeting or meeting.status == "ended":
-        raise HTTPException(status_code=404, detail="Meeting not found")
+    meeting = _get_open_meeting(db, code)
+    display_name = payload.display_name.strip()
+    if not display_name:
+        raise HTTPException(status_code=400, detail="Display name is required")
 
-    if meeting.status == "scheduled":
-        meeting.status = "live"
-        meeting.started_at = datetime.now(timezone.utc)
-
+    _go_live(meeting)
     participant = Participant(
         meeting_id=meeting.id,
-        display_name=payload.display_name,
+        display_name=display_name,
         role="participant",
     )
     db.add(participant)
     db.commit()
     db.refresh(meeting)
+    db.refresh(participant)
 
-    return _to_meeting_detail_out(meeting)
+    return JoinOut(meeting=_to_meeting_detail_out(meeting), participant=participant)
+
+
+@router.post("/{code}/start", response_model=JoinOut)
+def start_meeting(code: str, db: Session = Depends(get_db)):
+    """The host enters the room: the meeting goes live and the host gets an active participant row.
+    Safe to call again (e.g. on page refresh): it reuses the host's existing row."""
+    meeting = _get_open_meeting(db, code)
+    host = _get_default_user(db)
+
+    _go_live(meeting)
+    host_participant = next(
+        (p for p in meeting.participants if p.role == "host" and p.left_at is None),
+        None,
+    )
+    if not host_participant:
+        host_participant = Participant(
+            meeting_id=meeting.id,
+            user_id=host.id,
+            display_name=host.name,
+            role="host",
+        )
+        db.add(host_participant)
+    db.commit()
+    db.refresh(meeting)
+    db.refresh(host_participant)
+
+    return JoinOut(meeting=_to_meeting_detail_out(meeting), participant=host_participant)
 
 
 @router.post("/{code}/leave")
@@ -168,8 +207,13 @@ def end_meeting(code: str, db: Session = Depends(get_db)):
     if not meeting:
         raise HTTPException(status_code=404, detail="Meeting not found")
 
+    now = datetime.now(timezone.utc)
     meeting.status = "ended"
-    meeting.ended_at = datetime.now(timezone.utc)
+    meeting.ended_at = now
+    # Ending the meeting removes everyone still in it.
+    for p in meeting.participants:
+        if p.left_at is None:
+            p.left_at = now
     db.commit()
     db.refresh(meeting)
     return _to_meeting_out(meeting)

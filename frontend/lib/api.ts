@@ -33,6 +33,8 @@ export type Meeting = {
 
 export type MeetingDetail = Meeting & { participants: Participant[] };
 
+export type JoinResult = { meeting: MeetingDetail; participant: Participant };
+
 export class ApiError extends Error {
   status: number;
   constructor(message: string, status: number) {
@@ -98,10 +100,13 @@ export const api = {
     }),
 
   joinMeeting: (code: string, displayName: string) =>
-    request<MeetingDetail>(`/meetings/${code}/join`, {
+    request<JoinResult>(`/meetings/${code}/join`, {
       method: "POST",
       body: JSON.stringify({ display_name: displayName }),
     }),
+
+  // Host enters the room (marks the meeting live, returns the host's participant row).
+  startMeeting: (code: string) => request<JoinResult>(`/meetings/${code}/start`, { method: "POST" }),
 
   leaveMeeting: (code: string, participantId: number) =>
     request<{ status: string }>(`/meetings/${code}/leave`, {

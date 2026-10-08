@@ -4,7 +4,9 @@ import { useState } from "react";
 import { Check, Link2 } from "lucide-react";
 import { copyToClipboard } from "@/lib/utils";
 
-export default function CopyLinkButton({ link, className = "" }: { link: string; className?: string }) {
+type CopyLinkButtonProps = { link: string; tone?: "light" | "dark" };
+
+export default function CopyLinkButton({ link, tone = "light" }: CopyLinkButtonProps) {
   const [copied, setCopied] = useState(false);
 
   async function handleClick() {
@@ -19,9 +21,13 @@ export default function CopyLinkButton({ link, className = "" }: { link: string;
       onClick={handleClick}
       title={copied ? "Copied!" : "Copy invite link"}
       aria-label="Copy invite link"
-      className={`rounded-lg border border-line p-2 text-ink hover:bg-panel ${className}`}
+      className={
+        tone === "light"
+          ? "rounded-lg border border-line p-2 text-ink hover:bg-panel"
+          : "rounded-lg p-2 text-white/80 hover:bg-white/10 hover:text-white"
+      }
     >
-      {copied ? <Check className="size-4 text-green-600" /> : <Link2 className="size-4" />}
+      {copied ? <Check className="size-4 text-green-500" /> : <Link2 className="size-4" />}
     </button>
   );
 }

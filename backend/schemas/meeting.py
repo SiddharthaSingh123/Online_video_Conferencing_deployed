@@ -38,3 +38,8 @@ class MeetingOut(BaseModel):
 
 class MeetingDetailOut(MeetingOut):
     participants: List[ParticipantOut] = []
+
+
+class JoinOut(BaseModel):
+    meeting: MeetingDetailOut
+    participant: ParticipantOut
