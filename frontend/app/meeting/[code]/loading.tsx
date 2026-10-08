@@ -1,7 +1,6 @@
 import { LoaderCircle } from "lucide-react";
 
-// Next.js wraps the page in <Suspense> with this as the fallback. Needed because the
-// page reads the meeting code from the URL, which is only known at request time.
+// Shown by Next.js while the meeting room page loads.
 export default function Loading() {
   return (
     <div className="flex h-screen items-center justify-center bg-room text-white/70">

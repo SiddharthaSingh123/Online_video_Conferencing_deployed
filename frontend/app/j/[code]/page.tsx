@@ -27,7 +27,7 @@ export default function PreJoinPage() {
   const [name, setName] = useState("");
   const [micOn, setMicOn] = useState(true);
   const [videoOn, setVideoOn] = useState(true);
-  const { stream, hasVideo, error: mediaError } = useLocalMedia(micOn, videoOn);
+  const { stream, hasVideo, error: mediaError, waiting } = useLocalMedia(micOn, videoOn);
 
   const [joining, setJoining] = useState(false);
   const [joinError, setJoinError] = useState("");
@@ -117,7 +117,12 @@ export default function PreJoinPage() {
                 />
               </div>
             </div>
-            {mediaError && <p className="mt-3 text-sm text-muted">{mediaError}</p>}
+            {mediaError && (
+              <p className="mt-3 rounded-lg bg-amber-50 px-3 py-2 text-sm text-amber-800">{mediaError}</p>
+            )}
+            {waiting && (
+              <p className="mt-3 text-sm text-muted">Allow camera and microphone access when your browser asks.</p>
+            )}
           </div>
 
           <form onSubmit={handleJoin} className="flex flex-col gap-5">

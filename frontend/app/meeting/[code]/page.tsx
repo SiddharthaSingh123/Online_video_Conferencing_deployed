@@ -50,7 +50,7 @@ export default function MeetingRoomPage() {
 
   const [micOn, setMicOn] = useState(true);
   const [videoOn, setVideoOn] = useState(true);
-  const { stream, hasVideo } = useLocalMedia(micOn, videoOn);
+  const { stream, hasVideo, error: mediaError } = useLocalMedia(micOn, videoOn);
 
   const [showParticipants, setShowParticipants] = useState(false);
   const [inviteCopied, setInviteCopied] = useState(false);
@@ -175,6 +175,10 @@ export default function MeetingRoomPage() {
         <span className="shrink-0 text-xs text-white/60">ID: {formatMeetingCode(meeting.meeting_code)}</span>
         <CopyLinkButton link={meeting.invite_link} tone="dark" />
       </header>
+
+      {mediaError && (
+        <p className="mx-4 mb-2 rounded-lg bg-amber-500/15 px-3 py-2 text-sm text-amber-200">{mediaError}</p>
+      )}
 
       <div className="flex min-h-0 flex-1">
         <main className="flex flex-1 items-center justify-center overflow-y-auto p-4">
