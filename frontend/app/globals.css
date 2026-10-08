@@ -1,0 +1,37 @@
+@import "tailwindcss";
+
+/* Zoom-style design tokens, usable as Tailwind classes, e.g. bg-zoom-blue, text-muted */
+@theme {
+  --color-zoom-blue: #0b5cff;
+  --color-zoom-blue-hover: #0948cc;
+  --color-zoom-orange: #ff742e;
+  --color-zoom-orange-hover: #f0631c;
+  --color-ink: #232333;
+  --color-muted: #747487;
+  --color-line: #e8e8ef;
+  --color-panel: #f7f7fa;
+  --color-shell: #eceef2;
+  --color-room: #1c1c1c;
+  --color-toolbar: #232323;
+  --color-danger: #e02828;
+
+  --font-sans: var(--font-inter), system-ui, -apple-system, "Segoe UI", sans-serif;
+}
+
+body {
+  background: var(--color-shell);
+  color: var(--color-ink);
+}
+
+/* Shared form styles used by the modals */
+@layer components {
+  .input {
+    @apply w-full rounded-lg border border-line bg-white px-3 py-2 text-sm text-ink outline-none placeholder:text-muted focus:border-zoom-blue focus:ring-2 focus:ring-zoom-blue/20;
+  }
+  .btn-primary {
+    @apply inline-flex items-center justify-center gap-2 rounded-lg bg-zoom-blue px-4 py-2 text-sm font-medium text-white hover:bg-zoom-blue-hover disabled:cursor-not-allowed disabled:bg-zoom-blue/40;
+  }
+  .btn-secondary {
+    @apply inline-flex items-center justify-center gap-2 rounded-lg border border-line bg-white px-4 py-2 text-sm font-medium text-ink hover:bg-panel;
+  }
+}
