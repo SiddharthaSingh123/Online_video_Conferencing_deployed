@@ -32,6 +32,6 @@ body {
     @apply inline-flex items-center justify-center gap-2 rounded-lg bg-zoom-blue px-4 py-2 text-sm font-medium text-white hover:bg-zoom-blue-hover disabled:cursor-not-allowed disabled:bg-zoom-blue/40;
   }
   .btn-secondary {
-    @apply inline-flex items-center justify-center gap-2 rounded-lg border border-line bg-white px-4 py-2 text-sm font-medium text-ink hover:bg-panel;
+    @apply inline-flex items-center justify-center gap-2 rounded-lg border border-line bg-white px-4 py-2 text-sm font-medium text-ink hover:bg-panel disabled:cursor-not-allowed disabled:opacity-50;
   }
 }

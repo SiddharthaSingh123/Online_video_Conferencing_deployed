@@ -2,12 +2,14 @@
 
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { LoaderCircle, Mic, MicOff, Video, VideoOff, type LucideIcon } from "lucide-react";
+import { AudioLines, LoaderCircle, MicOff, Video, VideoOff } from "lucide-react";
 import Logo from "@/components/Logo";
 import MeetingError from "@/components/MeetingError";
+import MicLevelIcon from "@/components/MicLevelIcon";
 import VideoTile from "@/components/VideoTile";
 import { api, ApiError, type MeetingDetail } from "@/lib/api";
 import { useLocalMedia } from "@/lib/useLocalMedia";
+import { useMicTest, type MicTestStatus } from "@/lib/useMicTest";
 import {
   formatMeetingCode,
   loadDisplayName,
@@ -15,6 +17,12 @@ import {
   saveMediaPrefs,
   saveParticipantId,
 } from "@/lib/utils";
+
+const MIC_TEST_LABELS: Record<MicTestStatus, string> = {
+  idle: "Test mic",
+  recording: "Recording… speak now",
+  playing: "Playing back…",
+};
 
 export default function PreJoinPage() {
   const { code } = useParams<{ code: string }>();
@@ -27,7 +35,8 @@ export default function PreJoinPage() {
   const [name, setName] = useState("");
   const [micOn, setMicOn] = useState(true);
   const [videoOn, setVideoOn] = useState(true);
-  const { stream, hasVideo, error: mediaError, waiting } = useLocalMedia(micOn, videoOn);
+  const { stream, hasVideo, hasAudio, error: mediaError, waiting } = useLocalMedia(micOn, videoOn);
+  const micTest = useMicTest(stream);
 
   const [joining, setJoining] = useState(false);
   const [joinError, setJoinError] = useState("");
@@ -103,20 +112,33 @@ export default function PreJoinPage() {
               <div className="absolute inset-x-0 bottom-4 flex justify-center gap-3">
                 <MediaToggle
                   on={micOn}
-                  onIcon={Mic}
-                  offIcon={MicOff}
+                  icon={micOn ? <MicLevelIcon stream={stream} /> : <MicOff className="size-5" />}
                   label={micOn ? "Mute" : "Unmute"}
                   onClick={() => setMicOn((v) => !v)}
                 />
                 <MediaToggle
                   on={videoOn}
-                  onIcon={Video}
-                  offIcon={VideoOff}
+                  icon={videoOn ? <Video className="size-5" /> : <VideoOff className="size-5" />}
                   label={videoOn ? "Stop video" : "Start video"}
                   onClick={() => setVideoOn((v) => !v)}
                 />
               </div>
             </div>
+            {hasAudio && (
+              <div className="mt-3 flex items-center gap-3">
+                <button type="button" className="btn-secondary py-1.5" onClick={micTest.start} disabled={!micOn}>
+                  <AudioLines
+                    className={`size-4 ${micTest.status !== "idle" ? "animate-pulse text-zoom-blue" : ""}`}
+                  />
+                  {MIC_TEST_LABELS[micTest.status]}
+                </button>
+                {micTest.status === "idle" && (
+                  <span className="text-xs text-muted">
+                    {micOn ? "Records 3 seconds, then plays it back." : "Unmute your mic to test it."}
+                  </span>
+                )}
+              </div>
+            )}
             {mediaError && (
               <p className="mt-3 rounded-lg bg-amber-50 px-3 py-2 text-sm text-amber-800">{mediaError}</p>
             )}
@@ -160,14 +182,12 @@ export default function PreJoinPage() {
 
 type MediaToggleProps = {
   on: boolean;
-  onIcon: LucideIcon;
-  offIcon: LucideIcon;
+  icon: React.ReactNode;
   label: string;
   onClick: () => void;
 };
 
-function MediaToggle({ on, onIcon: OnIcon, offIcon: OffIcon, label, onClick }: MediaToggleProps) {
-  const Icon = on ? OnIcon : OffIcon;
+function MediaToggle({ on, icon, label, onClick }: MediaToggleProps) {
   return (
     <button
       type="button"
@@ -178,7 +198,7 @@ function MediaToggle({ on, onIcon: OnIcon, offIcon: OffIcon, label, onClick }: M
         on ? "bg-white/20 hover:bg-white/30" : "bg-danger hover:bg-danger/90"
       }`}
     >
-      <Icon className="size-5" />
+      {icon}
     </button>
   );
 }

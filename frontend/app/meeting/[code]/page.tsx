@@ -2,20 +2,10 @@
 
 import { useEffect, useRef, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
-import {
-  Check,
-  LoaderCircle,
-  Mic,
-  MicOff,
-  ShieldCheck,
-  UserPlus,
-  Users,
-  Video,
-  VideoOff,
-  type LucideIcon,
-} from "lucide-react";
+import { Check, LoaderCircle, MicOff, ShieldCheck, UserPlus, Users, Video, VideoOff } from "lucide-react";
 import CopyLinkButton from "@/components/CopyLinkButton";
 import MeetingError from "@/components/MeetingError";
+import MicLevelIcon from "@/components/MicLevelIcon";
 import ParticipantsPanel from "@/components/ParticipantsPanel";
 import VideoTile from "@/components/VideoTile";
 import { api, ApiError, type JoinResult, type MeetingDetail, type Participant } from "@/lib/api";
@@ -217,26 +207,24 @@ export default function MeetingRoomPage() {
         )}
 
         <ToolbarButton
-          icon={micOn ? Mic : MicOff}
+          icon={micOn ? <MicLevelIcon stream={stream} /> : <MicOff className="size-5 text-danger" />}
           label={micOn ? "Mute" : "Unmute"}
-          warn={!micOn}
           onClick={() => setMicOn((v) => !v)}
         />
         <ToolbarButton
-          icon={videoOn ? Video : VideoOff}
+          icon={videoOn ? <Video className="size-5" /> : <VideoOff className="size-5 text-danger" />}
           label={videoOn ? "Stop Video" : "Start Video"}
-          warn={!videoOn}
           onClick={() => setVideoOn((v) => !v)}
         />
         <ToolbarButton
-          icon={Users}
+          icon={<Users className="size-5" />}
           label="Participants"
           badge={meeting.participants.length}
           active={showParticipants}
           onClick={toggleParticipants}
         />
         <ToolbarButton
-          icon={inviteCopied ? Check : UserPlus}
+          icon={inviteCopied ? <Check className="size-5" /> : <UserPlus className="size-5" />}
           label={inviteCopied ? "Copied!" : "Invite"}
           onClick={handleInvite}
         />
@@ -255,15 +243,14 @@ export default function MeetingRoomPage() {
 }
 
 type ToolbarButtonProps = {
-  icon: LucideIcon;
+  icon: React.ReactNode;
   label: string;
   onClick: () => void;
   active?: boolean;
-  warn?: boolean; // red icon, e.g. when muted
   badge?: number;
 };
 
-function ToolbarButton({ icon: Icon, label, onClick, active, warn, badge }: ToolbarButtonProps) {
+function ToolbarButton({ icon, label, onClick, active, badge }: ToolbarButtonProps) {
   return (
     <button
       onClick={onClick}
@@ -271,7 +258,7 @@ function ToolbarButton({ icon: Icon, label, onClick, active, warn, badge }: Tool
         active ? "bg-white/10" : ""
       }`}
     >
-      <Icon className={`size-5 ${warn ? "text-danger" : ""}`} />
+      {icon}
       <span className="whitespace-nowrap text-[11px]">{label}</span>
       {badge !== undefined && (
         <span className="absolute right-1.5 top-0.5 rounded-full bg-white/20 px-1.5 text-[10px] leading-4">

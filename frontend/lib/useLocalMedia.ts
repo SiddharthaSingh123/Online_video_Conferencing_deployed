@@ -92,7 +92,8 @@ export function useLocalMedia(micOn: boolean, videoOn: boolean) {
   }, [stream, videoOn]);
 
   const hasVideo = (stream?.getVideoTracks().length ?? 0) > 0;
+  const hasAudio = (stream?.getAudioTracks().length ?? 0) > 0;
   // Still waiting for the browser's permission prompt to be answered.
   const waiting = stream === null && error === null;
-  return { stream, hasVideo, error, waiting };
+  return { stream, hasVideo, hasAudio, error, waiting };
 }

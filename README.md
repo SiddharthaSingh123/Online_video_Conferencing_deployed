@@ -13,7 +13,8 @@ A Zoom-style video meetings web app built as a 2-hour full-stack assignment. You
 - **Instant meeting**: one click creates a live meeting and drops you into the room as host.
 - **Join meeting**: accepts `123 4567 890`, `1234567890`, or a full `.../j/1234567890` link; shows "Meeting not found" for bad IDs.
 - **Schedule meeting**: title, description, date, time and duration; shows the meeting ID and a copyable invite link when saved.
-- **Pre-join screen** (`/j/{code}`): camera preview via `getUserMedia`, mic/video toggles, name input; falls back to an initials avatar if camera access is denied.
+- **Pre-join screen** (`/j/{code}`): camera preview via `getUserMedia`, mic/video toggles, name input; falls back to an initials avatar and explains why if the camera can't be used.
+- **Mic check**: the mic icon fills green as you speak (Web Audio `AnalyserNode`), and **Test mic** on the pre-join screen records 3 seconds and plays them back (`MediaRecorder`).
 - **Meeting room** (`/meeting/{code}`): participant tile grid (your own tile shows your camera), mute, video, participants panel, copy invite link, Leave (participant) / End (host).
 
 ## Tech stack
@@ -51,7 +52,9 @@ A Zoom-style video meetings web app built as a 2-hour full-stack assignment. You
     ├── lib/
     │   ├── api.ts               # Every API call, through one fetch wrapper with error handling
     │   ├── utils.ts             # Formatting, meeting-code parsing, sessionStorage helpers
-    │   └── useLocalMedia.ts     # Camera/mic hook (getUserMedia)
+    │   ├── useLocalMedia.ts     # Camera/mic hook (getUserMedia)
+    │   ├── useMicLevel.ts       # Live mic loudness for the green mic meter
+    │   └── useMicTest.ts        # "Test mic": record 3 seconds, play them back
     └── .env.example
 ```
 
