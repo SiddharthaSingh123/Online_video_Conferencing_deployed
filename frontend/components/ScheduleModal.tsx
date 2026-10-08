@@ -82,8 +82,8 @@ export default function ScheduleModal({ onClose, onScheduled }: ScheduleModalPro
       <Modal title="Meeting scheduled" onClose={onClose}>
         <div className="flex flex-col gap-4">
           <div className="flex items-center gap-3 rounded-lg bg-green-50 px-3 py-2.5 text-sm text-green-800">
-            <Check className="size-4" />
-            <span>
+            <Check className="size-4 shrink-0" />
+            <span className="min-w-0 break-words">
               <strong>{created.title}</strong> has been scheduled.
             </span>
           </div>
@@ -96,7 +96,7 @@ export default function ScheduleModal({ onClose, onScheduled }: ScheduleModalPro
           <div>
             <p className="text-xs font-medium uppercase tracking-wide text-muted">Invite link</p>
             <div className="mt-1 flex gap-2">
-              <input className="input" value={created.invite_link} readOnly />
+              <input className="input min-w-0" value={created.invite_link} readOnly />
               <button className="btn-secondary shrink-0" onClick={handleCopy}>
                 {copied ? <Check className="size-4 text-green-600" /> : <Copy className="size-4" />}
                 {copied ? "Copied" : "Copy"}
@@ -137,7 +137,7 @@ export default function ScheduleModal({ onClose, onScheduled }: ScheduleModalPro
           />
         </div>
 
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
           <div className="flex flex-col gap-1.5">
             <label htmlFor="date" className="text-sm font-medium text-ink">
               Date

@@ -11,15 +11,16 @@ type ParticipantsPanelProps = {
 
 export default function ParticipantsPanel({ participants, myId, myMicOn, onClose }: ParticipantsPanelProps) {
   return (
-    <aside className="flex w-80 shrink-0 flex-col border-l border-white/10 bg-toolbar">
-      <div className="flex items-center justify-between border-b border-white/10 px-4 py-3">
+    // Full-screen overlay below lg; a side panel next to the video grid on desktop.
+    <aside className="fixed inset-0 z-40 flex flex-col bg-toolbar lg:static lg:z-auto lg:w-80 lg:shrink-0 lg:border-l lg:border-white/10">
+      <div className="flex items-center justify-between border-b border-white/10 py-1 pl-4 pr-1">
         <h2 className="text-sm font-semibold">Participants ({participants.length})</h2>
         <button
           onClick={onClose}
-          className="rounded-md p-1 text-white/70 hover:bg-white/10 hover:text-white"
+          className="flex size-11 items-center justify-center rounded-md text-white/70 hover:bg-white/10 hover:text-white"
           aria-label="Close participants"
         >
-          <X className="size-4" />
+          <X className="size-5" />
         </button>
       </div>
 

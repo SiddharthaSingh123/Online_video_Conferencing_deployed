@@ -21,8 +21,8 @@ export default function MeetingsPage() {
 
   return (
     <AppShell user={user}>
-      <div className="mx-auto flex max-w-[860px] flex-col gap-6 px-6 py-8">
-        <div className="flex items-center justify-between">
+      <div className="mx-auto flex max-w-[860px] flex-col gap-6 px-4 py-6 sm:px-6 sm:py-8">
+        <div className="flex flex-wrap items-center justify-between gap-3">
           <h1 className="text-2xl font-semibold text-ink">Meetings</h1>
           <button className="btn-primary" onClick={openSchedule}>
             <CalendarDays className="size-4" /> Schedule a meeting

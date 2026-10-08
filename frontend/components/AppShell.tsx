@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
@@ -9,11 +10,13 @@ import {
   ChevronRight,
   Contact,
   House,
+  Menu,
   MessageSquare,
   Phone,
   Search,
   Settings,
   Video,
+  X,
   type LucideIcon,
 } from "lucide-react";
 import Logo from "@/components/Logo";
@@ -33,54 +36,123 @@ const NAV_ITEMS: NavItem[] = [
 ];
 
 export default function AppShell({ user, children }: { user: User | null; children: React.ReactNode }) {
+  // Below lg the sidebar is hidden and slides in as a drawer from the hamburger button.
+  const [drawerOpen, setDrawerOpen] = useState(false);
+
+  useEffect(() => {
+    if (!drawerOpen) return;
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setDrawerOpen(false);
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [drawerOpen]);
+
   return (
-    <div className="flex h-screen flex-col bg-shell">
-      <TopNav user={user} />
+    <div className="flex h-dvh flex-col bg-shell">
+      <TopNav user={user} onMenuClick={() => setDrawerOpen(true)} />
       <div className="flex min-h-0 flex-1">
-        <Sidebar />
-        <main className="mb-2 mr-2 flex-1 overflow-y-auto rounded-xl bg-white">{children}</main>
+        <div className="hidden w-[104px] shrink-0 lg:flex">
+          <SidebarNav />
+        </div>
+        <main className="mx-2 mb-2 flex-1 overflow-y-auto rounded-xl bg-white lg:ml-0">{children}</main>
+      </div>
+
+      {/* Drawer (below lg). While closed it is moved off-screen and `inert` keeps it out of keyboard focus. */}
+      <div className={`fixed inset-0 z-50 lg:hidden ${drawerOpen ? "" : "pointer-events-none"}`} inert={!drawerOpen}>
+        <div
+          className={`absolute inset-0 bg-black/40 transition-opacity ${drawerOpen ? "opacity-100" : "opacity-0"}`}
+          onClick={() => setDrawerOpen(false)}
+        />
+        <div
+          className={`absolute inset-y-0 left-0 flex w-[104px] flex-col bg-shell pt-2 shadow-xl transition-transform ${
+            drawerOpen ? "translate-x-0" : "-translate-x-full"
+          }`}
+        >
+          <button
+            onClick={() => setDrawerOpen(false)}
+            aria-label="Close menu"
+            className="mx-auto flex size-11 items-center justify-center rounded-lg text-ink hover:bg-black/5"
+          >
+            <X className="size-5" />
+          </button>
+          <SidebarNav onNavigate={() => setDrawerOpen(false)} />
+        </div>
       </div>
     </div>
   );
 }
 
-function TopNav({ user }: { user: User | null }) {
+function TopNav({ user, onMenuClick }: { user: User | null; onMenuClick: () => void }) {
+  // On mobile the search box collapses to an icon that opens it on its own row.
+  const [searchOpen, setSearchOpen] = useState(false);
+
   return (
-    <header className="flex h-[52px] shrink-0 items-center gap-4 px-4">
-      <Logo />
-
-      <div className="flex flex-1 items-center justify-center gap-3">
-        <ChevronLeft className="size-5 text-muted" />
-        <ChevronRight className="size-5 text-muted/50" />
-        <label className="flex h-9 w-full max-w-[550px] items-center gap-2 rounded-lg bg-[#dfe1e6] px-3 text-sm text-muted">
-          <Search className="size-4" />
-          <input
-            className="w-full bg-transparent text-ink outline-none placeholder:text-muted"
-            placeholder="Search (Ctrl+E)"
-          />
-        </label>
-      </div>
-
-      <div className="flex items-center gap-4">
-        <Bell className="size-5 text-ink" />
-        <Settings className="size-5 text-ink" />
-        <div
-          className="flex size-8 items-center justify-center rounded-lg text-xs font-semibold text-white"
-          style={{ backgroundColor: user?.avatar_color ?? "#747487" }}
-          title={user?.name}
+    <>
+      <header className="flex h-[52px] shrink-0 items-center gap-2 px-2 sm:gap-4 sm:px-4">
+        <button
+          onClick={onMenuClick}
+          aria-label="Open menu"
+          className="flex size-11 shrink-0 items-center justify-center rounded-lg text-ink hover:bg-black/5 lg:hidden"
         >
-          {user ? getInitials(user.name) : ""}
+          <Menu className="size-5" />
+        </button>
+        <Logo />
+
+        <div className="hidden flex-1 items-center justify-center gap-3 sm:flex">
+          <ChevronLeft className="hidden size-5 text-muted lg:block" />
+          <ChevronRight className="hidden size-5 text-muted/50 lg:block" />
+          <SearchBox />
         </div>
-      </div>
-    </header>
+
+        <div className="ml-auto flex shrink-0 items-center gap-2 sm:gap-4">
+          <button
+            onClick={() => setSearchOpen((open) => !open)}
+            aria-label="Search"
+            aria-expanded={searchOpen}
+            className="flex size-11 items-center justify-center rounded-lg text-ink hover:bg-black/5 sm:hidden"
+          >
+            <Search className="size-5" />
+          </button>
+          <Bell className="size-5 text-ink" />
+          <Settings className="size-5 text-ink" />
+          <div
+            className="flex size-8 items-center justify-center rounded-lg text-xs font-semibold text-white"
+            style={{ backgroundColor: user?.avatar_color ?? "#747487" }}
+            title={user?.name}
+          >
+            {user ? getInitials(user.name) : ""}
+          </div>
+        </div>
+      </header>
+
+      {searchOpen && (
+        <div className="px-2 pb-2 sm:hidden">
+          <SearchBox autoFocus />
+        </div>
+      )}
+    </>
   );
 }
 
-function Sidebar() {
+function SearchBox({ autoFocus = false }: { autoFocus?: boolean }) {
+  return (
+    <label className="flex h-11 w-full max-w-[550px] items-center gap-2 rounded-lg bg-[#dfe1e6] px-3 text-muted">
+      <Search className="size-4 shrink-0" />
+      <input
+        autoFocus={autoFocus}
+        className="w-full bg-transparent text-base text-ink outline-none placeholder:text-muted"
+        placeholder="Search (Ctrl+E)"
+      />
+    </label>
+  );
+}
+
+function SidebarNav({ onNavigate }: { onNavigate?: () => void }) {
   const pathname = usePathname();
 
   return (
-    <nav className="flex w-[104px] shrink-0 flex-col items-center gap-1 px-2 pb-4">
+    <nav className="flex flex-1 flex-col items-center gap-1 px-2 pb-4">
       {NAV_ITEMS.map((item) => {
         const active = item.href === pathname;
         const content = (
@@ -94,7 +166,7 @@ function Sidebar() {
         }`;
 
         return item.href ? (
-          <Link key={item.label} href={item.href} className={className}>
+          <Link key={item.label} href={item.href} className={className} onClick={onNavigate}>
             {content}
           </Link>
         ) : (

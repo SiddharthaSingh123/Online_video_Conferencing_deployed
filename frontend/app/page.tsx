@@ -54,11 +54,14 @@ export default function DashboardPage() {
 
   return (
     <AppShell user={user}>
-      <div className="mx-auto flex max-w-[730px] flex-col items-center px-6 pb-12 pt-10">
-        <h1 className="h-[60px] text-5xl font-bold tracking-tight text-ink">{now ? formatClock(now) : ""}</h1>
-        <p className="h-7 text-lg text-muted">{now ? formatLongDate(now) : ""}</p>
+      <div className="mx-auto flex max-w-[730px] flex-col items-center px-4 pb-10 pt-8 sm:px-6 sm:pt-10 lg:max-w-5xl">
+        <h1 className="h-10 text-4xl font-bold tracking-tight text-ink sm:h-[60px] sm:text-5xl">
+          {now ? formatClock(now) : ""}
+        </h1>
+        <p className="h-7 text-base text-muted sm:text-lg">{now ? formatLongDate(now) : ""}</p>
 
-        <div className="mt-8 flex gap-12">
+        {/* Mobile: 2 columns with the third tile centered underneath. From sm up: one row. */}
+        <div className="mt-8 grid grid-cols-2 justify-items-center gap-x-10 gap-y-6 sm:flex sm:gap-12">
           <ActionTile
             label="New meeting"
             icon={starting ? LoaderCircle : Video}
@@ -68,11 +71,18 @@ export default function DashboardPage() {
             disabled={starting}
           />
           <ActionTile label="Join" icon={Plus} color="blue" onClick={openJoin} />
-          <ActionTile label="Schedule" icon={CalendarDays} color="blue" onClick={openSchedule} />
+          <ActionTile
+            label="Schedule"
+            icon={CalendarDays}
+            color="blue"
+            onClick={openSchedule}
+            className="col-span-2"
+          />
         </div>
-        {startError && <p className="mt-4 text-sm text-danger">{startError}</p>}
+        {startError && <p className="mt-4 text-center text-sm text-danger">{startError}</p>}
 
-        <div className="mt-10 flex w-full flex-col gap-6">
+        {/* Stacked below lg, side by side on desktop */}
+        <div className="mt-10 grid w-full gap-6 lg:grid-cols-2 lg:items-start">
           <UpcomingMeetings
             hostName={user?.name ?? "Host"}
             refreshKey={upcomingRefreshKey}
@@ -100,14 +110,15 @@ type ActionTileProps = {
   onClick: () => void;
   disabled?: boolean;
   spin?: boolean;
+  className?: string;
 };
 
-function ActionTile({ label, icon: Icon, color, onClick, disabled, spin }: ActionTileProps) {
+function ActionTile({ label, icon: Icon, color, onClick, disabled, spin, className = "" }: ActionTileProps) {
   const bg =
     color === "orange" ? "bg-zoom-orange hover:bg-zoom-orange-hover" : "bg-zoom-blue hover:bg-zoom-blue-hover";
 
   return (
-    <button onClick={onClick} disabled={disabled} className="group flex flex-col items-center gap-2.5">
+    <button onClick={onClick} disabled={disabled} className={`group flex flex-col items-center gap-2.5 ${className}`}>
       <span
         className={`flex size-[70px] items-center justify-center rounded-[20px] text-white shadow-sm transition ${bg} group-disabled:opacity-80`}
       >

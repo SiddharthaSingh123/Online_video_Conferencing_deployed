@@ -48,7 +48,7 @@ export default function UpcomingMeetings({ hostName, refreshKey, onSchedule }: U
       <header className="relative flex items-center justify-center border-b border-line bg-panel px-4 py-3">
         <button
           onClick={onSchedule}
-          className="absolute left-3 rounded-md p-1.5 text-ink hover:bg-black/5"
+          className="absolute left-1.5 top-1/2 flex size-11 -translate-y-1/2 items-center justify-center rounded-md text-ink hover:bg-black/5"
           aria-label="Schedule a meeting"
           title="Schedule a meeting"
         >
@@ -72,7 +72,10 @@ export default function UpcomingMeetings({ hostName, refreshKey, onSchedule }: U
               <Umbrella className="size-10 text-[#9a9ad8]" strokeWidth={1.5} />
             </div>
             <p className="text-sm text-muted">No meetings scheduled.</p>
-            <button onClick={onSchedule} className="flex items-center gap-1 text-sm text-zoom-blue hover:underline">
+            <button
+              onClick={onSchedule}
+              className="flex min-h-11 items-center gap-1 px-2 text-sm text-zoom-blue hover:underline"
+            >
               <Plus className="size-4" /> Schedule a meeting
             </button>
           </div>
@@ -81,19 +84,22 @@ export default function UpcomingMeetings({ hostName, refreshKey, onSchedule }: U
             {meetings.map((m) => {
               const start = parseUtc(m.scheduled_start!);
               return (
-                <li key={m.id} className="flex items-center gap-4 px-5 py-4">
-                  <div className="w-[120px] shrink-0">
+                // Mobile: time on its own line above the title. From sm up: time column on the left.
+                <li key={m.id} className="flex flex-col gap-2 px-4 py-4 sm:flex-row sm:items-center sm:gap-4 sm:px-5">
+                  <div className="flex items-baseline gap-2 sm:block sm:w-[120px] sm:shrink-0">
                     <p className="text-sm font-semibold text-ink">{formatDayLabel(start)}</p>
                     <p className="text-xs text-muted">{formatTimeRange(start, m.duration_minutes)}</p>
                   </div>
-                  <div className="min-w-0 flex-1">
-                    <p className="truncate text-sm font-semibold text-ink">{m.title}</p>
-                    <p className="text-xs text-muted">Meeting ID: {formatMeetingCode(m.meeting_code)}</p>
+                  <div className="flex min-w-0 flex-1 items-center gap-3">
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate text-sm font-semibold text-ink">{m.title}</p>
+                      <p className="text-xs text-muted">Meeting ID: {formatMeetingCode(m.meeting_code)}</p>
+                    </div>
+                    <CopyLinkButton link={m.invite_link} />
+                    <button className="btn-primary shrink-0 py-1.5" onClick={() => startMeeting(m.meeting_code)}>
+                      Start
+                    </button>
                   </div>
-                  <CopyLinkButton link={m.invite_link} />
-                  <button className="btn-primary py-1.5" onClick={() => startMeeting(m.meeting_code)}>
-                    Start
-                  </button>
                 </li>
               );
             })}

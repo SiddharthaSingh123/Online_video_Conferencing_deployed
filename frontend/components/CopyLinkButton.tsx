@@ -21,11 +21,11 @@ export default function CopyLinkButton({ link, tone = "light" }: CopyLinkButtonP
       onClick={handleClick}
       title={copied ? "Copied!" : "Copy invite link"}
       aria-label="Copy invite link"
-      className={
+      className={`flex size-11 shrink-0 items-center justify-center rounded-lg ${
         tone === "light"
-          ? "rounded-lg border border-line p-2 text-ink hover:bg-panel"
-          : "rounded-lg p-2 text-white/80 hover:bg-white/10 hover:text-white"
-      }
+          ? "border border-line text-ink hover:bg-panel"
+          : "text-white/80 hover:bg-white/10 hover:text-white"
+      }`}
     >
       {copied ? <Check className="size-4 text-green-500" /> : <Link2 className="size-4" />}
     </button>

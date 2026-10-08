@@ -95,12 +95,13 @@ export default function PreJoinPage() {
 
   return (
     <div className="flex min-h-screen flex-col bg-white">
-      <header className="flex h-14 items-center border-b border-line px-6">
+      <header className="flex h-14 items-center border-b border-line px-4 sm:px-6">
         <Logo />
       </header>
 
-      <main className="flex flex-1 items-center justify-center p-6">
-        <div className="grid w-full max-w-5xl items-center gap-10 md:grid-cols-[3fr_2fr]">
+      {/* Stacked on small screens (video on top, form below), side by side from md up */}
+      <main className="flex flex-1 items-center justify-center p-4 sm:p-6">
+        <div className="grid w-full max-w-5xl items-center gap-6 md:grid-cols-[3fr_2fr] md:gap-10">
           <div>
             <div className="relative">
               <VideoTile
@@ -125,7 +126,7 @@ export default function PreJoinPage() {
               </div>
             </div>
             {hasAudio && (
-              <div className="mt-3 flex items-center gap-3">
+              <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1">
                 <button type="button" className="btn-secondary py-1.5" onClick={micTest.start} disabled={!micOn}>
                   <AudioLines
                     className={`size-4 ${micTest.status !== "idle" ? "animate-pulse text-zoom-blue" : ""}`}
@@ -149,7 +150,7 @@ export default function PreJoinPage() {
 
           <form onSubmit={handleJoin} className="flex flex-col gap-5">
             <div>
-              <h1 className="text-2xl font-semibold text-ink">{meeting.title}</h1>
+              <h1 className="break-words text-2xl font-semibold text-ink">{meeting.title}</h1>
               <p className="mt-1 text-sm text-muted">Meeting ID: {formatMeetingCode(meeting.meeting_code)}</p>
             </div>
 

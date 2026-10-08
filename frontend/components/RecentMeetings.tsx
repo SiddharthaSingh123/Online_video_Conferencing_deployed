@@ -41,19 +41,22 @@ export default function RecentMeetings() {
             const started = parseUtc(m.started_at ?? m.created_at);
             const ended = m.ended_at ? parseUtc(m.ended_at) : null;
             return (
-              <li key={m.id} className="flex items-center gap-4 px-5 py-3">
-                <div className="w-[120px] shrink-0">
+              // Mobile: time on its own line above the title. From sm up: time column on the left.
+              <li key={m.id} className="flex flex-col gap-1 px-4 py-3 sm:flex-row sm:items-center sm:gap-4 sm:px-5">
+                <div className="flex items-baseline gap-2 sm:block sm:w-[120px] sm:shrink-0">
                   <p className="text-sm font-medium text-ink">{formatDayLabel(started)}</p>
                   <p className="text-xs text-muted">
                     {formatClock(started)}
                     {ended && ` - ${formatClock(ended)}`}
                   </p>
                 </div>
-                <div className="min-w-0 flex-1">
-                  <p className="truncate text-sm font-medium text-ink">{m.title}</p>
-                  <p className="text-xs text-muted">Meeting ID: {formatMeetingCode(m.meeting_code)}</p>
+                <div className="flex min-w-0 flex-1 items-center gap-3">
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-sm font-medium text-ink">{m.title}</p>
+                    <p className="text-xs text-muted">Meeting ID: {formatMeetingCode(m.meeting_code)}</p>
+                  </div>
+                  <span className="shrink-0 rounded-full bg-panel px-2.5 py-1 text-xs text-muted">Ended</span>
                 </div>
-                <span className="rounded-full bg-panel px-2.5 py-1 text-xs text-muted">Ended</span>
               </li>
             );
           })}

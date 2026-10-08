@@ -20,13 +20,10 @@ import {
   saveParticipantId,
 } from "@/lib/utils";
 
-// More people -> more columns. Fewer columns on small screens.
+// 1 column on mobile, 2 on tablet, as many as fit on desktop. A lone tile stays one big centered tile.
 function gridClass(count: number): string {
   if (count === 1) return "max-w-4xl grid-cols-1";
-  if (count === 2) return "max-w-6xl grid-cols-1 sm:grid-cols-2";
-  if (count <= 4) return "max-w-5xl grid-cols-1 sm:grid-cols-2";
-  if (count <= 9) return "max-w-6xl grid-cols-2 lg:grid-cols-3";
-  return "max-w-7xl grid-cols-2 md:grid-cols-3 xl:grid-cols-4";
+  return "max-w-7xl grid-cols-1 sm:grid-cols-2 lg:grid-cols-[repeat(auto-fit,minmax(18rem,1fr))]";
 }
 
 export default function MeetingRoomPage() {
@@ -145,7 +142,7 @@ export default function MeetingRoomPage() {
 
   if (!meeting || !me) {
     return (
-      <div className="flex h-screen items-center justify-center bg-room text-white/70">
+      <div className="flex h-dvh items-center justify-center bg-room text-white/70">
         <LoaderCircle className="size-8 animate-spin" />
       </div>
     );
@@ -158,21 +155,22 @@ export default function MeetingRoomPage() {
   );
 
   return (
-    <div className="flex h-screen flex-col bg-room text-white">
-      <header className="flex h-12 shrink-0 items-center gap-3 px-4">
+    <div className="flex h-dvh flex-col bg-room text-white">
+      <header className="flex h-12 shrink-0 items-center gap-2 px-3 sm:gap-3 sm:px-4">
         <ShieldCheck className="size-4 shrink-0 text-green-500" />
-        <h1 className="truncate text-sm font-semibold">{meeting.title}</h1>
+        <h1 className="min-w-0 truncate text-sm font-semibold">{meeting.title}</h1>
         <span className="shrink-0 text-xs text-white/60">ID: {formatMeetingCode(meeting.meeting_code)}</span>
         <CopyLinkButton link={meeting.invite_link} tone="dark" />
       </header>
 
       {mediaError && (
-        <p className="mx-4 mb-2 rounded-lg bg-amber-500/15 px-3 py-2 text-sm text-amber-200">{mediaError}</p>
+        <p className="mx-3 mb-2 rounded-lg bg-amber-500/15 px-3 py-2 text-sm text-amber-200 sm:mx-4">{mediaError}</p>
       )}
 
       <div className="flex min-h-0 flex-1">
-        <main className="flex flex-1 items-center justify-center overflow-y-auto p-4">
-          <div className={`grid w-full gap-3 ${gridClass(participants.length)}`}>
+        <main className="flex flex-1 overflow-y-auto p-3 sm:p-4">
+          {/* m-auto centers the grid, but unlike items-center it still scrolls from the top when the grid is taller than the screen */}
+          <div className={`m-auto grid w-full gap-3 ${gridClass(participants.length)}`}>
             {participants.map((p) => {
               const isMe = p.id === me.id;
               return (
@@ -199,9 +197,9 @@ export default function MeetingRoomPage() {
         )}
       </div>
 
-      <footer className="relative flex h-[72px] shrink-0 items-center justify-center gap-1 bg-toolbar px-4">
+      <footer className="relative flex h-[72px] shrink-0 items-center justify-center gap-1 bg-toolbar px-2 sm:px-4 md:gap-2">
         {actionError && (
-          <p className="absolute -top-11 left-1/2 -translate-x-1/2 whitespace-nowrap rounded-md bg-danger px-3 py-1.5 text-sm">
+          <p className="absolute bottom-full left-1/2 mb-2 w-max max-w-[calc(100vw-2rem)] -translate-x-1/2 rounded-md bg-danger px-3 py-1.5 text-center text-sm">
             {actionError}
           </p>
         )}
@@ -232,7 +230,7 @@ export default function MeetingRoomPage() {
         <button
           onClick={handleLeave}
           disabled={leaving}
-          className="ml-3 flex items-center gap-2 rounded-lg bg-danger px-5 py-2 text-sm font-semibold text-white hover:bg-danger/90 disabled:opacity-60"
+          className="ml-2 flex min-h-11 shrink-0 items-center gap-2 rounded-lg bg-danger px-4 py-2 text-sm font-semibold text-white hover:bg-danger/90 disabled:opacity-60 sm:ml-3 sm:px-5"
         >
           {leaving && <LoaderCircle className="size-4 animate-spin" />}
           {isHost ? "End" : "Leave"}
@@ -254,12 +252,13 @@ function ToolbarButton({ icon, label, onClick, active, badge }: ToolbarButtonPro
   return (
     <button
       onClick={onClick}
-      className={`relative flex min-w-[64px] flex-col items-center gap-1 rounded-lg px-2 py-1.5 text-white/90 hover:bg-white/10 ${
+      className={`relative flex min-h-11 min-w-11 shrink-0 flex-col items-center justify-center gap-1 rounded-lg px-2 py-1.5 text-white/90 hover:bg-white/10 md:min-w-[72px] ${
         active ? "bg-white/10" : ""
       }`}
     >
       {icon}
-      <span className="whitespace-nowrap text-[11px]">{label}</span>
+      {/* Icon-only on mobile; the label stays readable by screen readers. */}
+      <span className="sr-only text-[11px] md:not-sr-only md:whitespace-nowrap">{label}</span>
       {badge !== undefined && (
         <span className="absolute right-1.5 top-0.5 rounded-full bg-white/20 px-1.5 text-[10px] leading-4">
           {badge}
