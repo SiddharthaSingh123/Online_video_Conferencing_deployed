@@ -1,26 +1,22 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { CalendarDays } from "lucide-react";
 import AppShell from "@/components/AppShell";
 import ScheduleModal from "@/components/ScheduleModal";
 import UpcomingMeetings from "@/components/UpcomingMeetings";
 import RecentMeetings from "@/components/RecentMeetings";
-import { api, type User } from "@/lib/api";
+import { useAuth } from "@/lib/auth";
 
 export default function MeetingsPage() {
-  const [user, setUser] = useState<User | null>(null);
+  const { user } = useAuth();
   const [scheduleOpen, setScheduleOpen] = useState(false);
   const [upcomingRefreshKey, setUpcomingRefreshKey] = useState(0);
-
-  useEffect(() => {
-    api.getMe().then(setUser).catch(() => setUser(null));
-  }, []);
 
   const openSchedule = () => setScheduleOpen(true);
 
   return (
-    <AppShell user={user}>
+    <AppShell>
       <div className="mx-auto flex max-w-[860px] flex-col gap-6 px-4 py-6 sm:px-6 sm:py-8">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <h1 className="text-2xl font-semibold text-ink">Meetings</h1>

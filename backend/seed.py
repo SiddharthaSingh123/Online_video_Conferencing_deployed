@@ -5,17 +5,18 @@ from sqlalchemy.orm import Session
 
 from database import SessionLocal
 from models import User, Meeting, Participant
+from services.auth_service import DEFAULT_USER_EMAIL
 from services.meeting_service import generate_meeting_code
 
 GUEST_NAMES = ["Alex Chen", "Priya Patel", "Sam Rivera", "Jordan Lee", "Morgan Blake"]
 
 
 def seed(db: Session) -> None:
-    existing_user = db.query(User).first()
-    if existing_user:
+    if db.query(User).filter(User.email == DEFAULT_USER_EMAIL).first():
         return  # already seeded
 
-    user = User(name="Kartikeya", email="user@example.com", avatar_color="#0B5CFF")
+    # No password: this is the account everyone uses while logged out.
+    user = User(name="Kartikeya", email=DEFAULT_USER_EMAIL, avatar_color="#0B5CFF")
     db.add(user)
     db.commit()
     db.refresh(user)

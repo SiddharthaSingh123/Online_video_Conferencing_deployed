@@ -9,12 +9,13 @@ import Notice from "@/components/Notice";
 import ScheduleModal from "@/components/ScheduleModal";
 import UpcomingMeetings from "@/components/UpcomingMeetings";
 import RecentMeetings from "@/components/RecentMeetings";
-import { api, type User } from "@/lib/api";
+import { api } from "@/lib/api";
+import { useAuth } from "@/lib/auth";
 import { formatClock, formatLongDate, markAsHost, saveDisplayName } from "@/lib/utils";
 
 export default function DashboardPage() {
   const router = useRouter();
-  const [user, setUser] = useState<User | null>(null);
+  const { user } = useAuth();
   // null until mounted, so the server-rendered HTML doesn't contain a stale time
   const [now, setNow] = useState<Date | null>(null);
 
@@ -24,10 +25,6 @@ export default function DashboardPage() {
 
   const [starting, setStarting] = useState(false);
   const [startError, setStartError] = useState("");
-
-  useEffect(() => {
-    api.getMe().then(setUser).catch(() => setUser(null));
-  }, []);
 
   useEffect(() => {
     const tick = () => setNow(new Date());
@@ -54,7 +51,7 @@ export default function DashboardPage() {
   const openSchedule = () => setScheduleOpen(true);
 
   return (
-    <AppShell user={user}>
+    <AppShell>
       <div className="mx-auto flex max-w-[730px] flex-col items-center px-4 pb-10 pt-8 sm:px-6 sm:pt-10 lg:max-w-5xl">
         {/* Reads ?notice= from the URL; Next.js needs a Suspense boundary around that on a static page. */}
         <Suspense fallback={null}>

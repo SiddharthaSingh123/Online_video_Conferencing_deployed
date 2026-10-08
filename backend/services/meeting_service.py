@@ -4,7 +4,7 @@ import random
 from fastapi import HTTPException
 from sqlalchemy.orm import Session
 
-from models import Meeting
+from models import Meeting, User
 
 
 def generate_meeting_code(db: Session) -> str:
@@ -29,6 +29,16 @@ def get_open_meeting(db: Session, code: str) -> Meeting:
     return meeting
 
 
-def list_live(db: Session) -> list[Meeting]:
-    """Meetings in progress, newest first (so the host can get back into them)."""
-    return db.query(Meeting).filter(Meeting.status == "live").order_by(Meeting.started_at.desc()).all()
+def list_live(db: Session, host_id: int) -> list[Meeting]:
+    """The host's meetings in progress, newest first (so they can get back into them)."""
+    return (
+        db.query(Meeting)
+        .filter(Meeting.host_id == host_id, Meeting.status == "live")
+        .order_by(Meeting.started_at.desc())
+        .all()
+    )
+
+
+def require_meeting_host(meeting: Meeting, user: User) -> None:
+    if meeting.host_id != user.id:
+        raise HTTPException(status_code=403, detail="Only the host can do this")

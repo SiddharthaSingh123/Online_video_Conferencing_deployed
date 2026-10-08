@@ -13,6 +13,8 @@ class User(Base):
     name = Column(String, nullable=False)
     email = Column(String, unique=True, nullable=False)
     avatar_color = Column(String, nullable=False, default="#0B5CFF")
+    # bcrypt hash. Null for the seeded default user, who can't log in with a password.
+    password_hash = Column(String, nullable=True)
     created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
 
     meetings = relationship("Meeting", back_populates="host")

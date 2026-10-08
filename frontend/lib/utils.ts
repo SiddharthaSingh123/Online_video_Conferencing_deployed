@@ -17,6 +17,11 @@ export function extractMeetingCode(input: string): string | null {
   return digits.length === 10 ? digits : null;
 }
 
+// Same simple check as the backend: something@something.something, no spaces.
+export function isValidEmail(email: string): boolean {
+  return /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email.trim());
+}
+
 export function formatClock(date: Date): string {
   return date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", hour12: false });
 }

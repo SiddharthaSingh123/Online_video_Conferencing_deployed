@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
@@ -10,17 +10,20 @@ import {
   ChevronRight,
   Contact,
   House,
+  LogIn,
+  LogOut,
   Menu,
   MessageSquare,
   Phone,
   Search,
   Settings,
+  UserPlus,
   Video,
   X,
   type LucideIcon,
 } from "lucide-react";
 import Logo from "@/components/Logo";
-import type { User } from "@/lib/api";
+import { useAuth } from "@/lib/auth";
 import { getInitials } from "@/lib/utils";
 
 type NavItem = { label: string; icon: LucideIcon; href?: string };
@@ -35,7 +38,7 @@ const NAV_ITEMS: NavItem[] = [
   { label: "Contacts", icon: Contact },
 ];
 
-export default function AppShell({ user, children }: { user: User | null; children: React.ReactNode }) {
+export default function AppShell({ children }: { children: React.ReactNode }) {
   // Below lg the sidebar is hidden and slides in as a drawer from the hamburger button.
   const [drawerOpen, setDrawerOpen] = useState(false);
 
@@ -50,7 +53,7 @@ export default function AppShell({ user, children }: { user: User | null; childr
 
   return (
     <div className="flex h-dvh flex-col bg-shell">
-      <TopNav user={user} onMenuClick={() => setDrawerOpen(true)} />
+      <TopNav onMenuClick={() => setDrawerOpen(true)} />
       <div className="flex min-h-0 flex-1">
         <div className="hidden w-[104px] shrink-0 lg:flex">
           <SidebarNav />
@@ -83,7 +86,7 @@ export default function AppShell({ user, children }: { user: User | null; childr
   );
 }
 
-function TopNav({ user, onMenuClick }: { user: User | null; onMenuClick: () => void }) {
+function TopNav({ onMenuClick }: { onMenuClick: () => void }) {
   // On mobile the search box collapses to an icon that opens it on its own row.
   const [searchOpen, setSearchOpen] = useState(false);
 
@@ -116,13 +119,7 @@ function TopNav({ user, onMenuClick }: { user: User | null; onMenuClick: () => v
           </button>
           <Bell className="size-5 text-ink" />
           <Settings className="size-5 text-ink" />
-          <div
-            className="flex size-8 items-center justify-center rounded-lg text-xs font-semibold text-white"
-            style={{ backgroundColor: user?.avatar_color ?? "#747487" }}
-            title={user?.name}
-          >
-            {user ? getInitials(user.name) : ""}
-          </div>
+          <ProfileMenu />
         </div>
       </header>
 
@@ -132,6 +129,82 @@ function TopNav({ user, onMenuClick }: { user: User | null; onMenuClick: () => v
         </div>
       )}
     </>
+  );
+}
+
+// Avatar button with a dropdown: Log in / Sign up when logged out, name + Log out when logged in.
+function ProfileMenu() {
+  const { user, loggedIn, logout } = useAuth();
+  const [open, setOpen] = useState(false);
+  const menuRef = useRef<HTMLDivElement>(null);
+
+  // Close when clicking anywhere outside the menu or pressing Escape.
+  useEffect(() => {
+    if (!open) return;
+    const onPointerDown = (e: PointerEvent) => {
+      if (!menuRef.current?.contains(e.target as Node)) setOpen(false);
+    };
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setOpen(false);
+    };
+    document.addEventListener("pointerdown", onPointerDown);
+    document.addEventListener("keydown", onKeyDown);
+    return () => {
+      document.removeEventListener("pointerdown", onPointerDown);
+      document.removeEventListener("keydown", onKeyDown);
+    };
+  }, [open]);
+
+  const itemClass = "flex min-h-11 w-full items-center gap-2 rounded-lg px-3 text-sm text-ink hover:bg-panel";
+
+  return (
+    <div ref={menuRef} className="relative">
+      <button
+        onClick={() => setOpen((o) => !o)}
+        aria-label="Profile menu"
+        aria-haspopup="menu"
+        aria-expanded={open}
+        className="flex size-11 items-center justify-center rounded-lg hover:bg-black/5"
+      >
+        <span
+          className="flex size-8 items-center justify-center rounded-lg text-xs font-semibold text-white"
+          style={{ backgroundColor: user?.avatar_color ?? "#747487" }}
+        >
+          {user ? getInitials(user.name) : ""}
+        </span>
+      </button>
+
+      {open && (
+        <div role="menu" className="absolute right-0 top-full z-40 mt-1 w-64 rounded-xl border border-line bg-white p-2 shadow-lg">
+          {loggedIn && user ? (
+            <>
+              <div className="px-3 py-2">
+                <p className="truncate text-sm font-semibold text-ink">{user.name}</p>
+                <p className="truncate text-xs text-muted">{user.email}</p>
+              </div>
+              <button role="menuitem" onClick={logout} className={itemClass}>
+                <LogOut className="size-4" />
+                Log out
+              </button>
+            </>
+          ) : (
+            <>
+              <p className="px-3 py-2 text-xs text-muted">
+                Not logged in{user ? `: using the default account (${user.name})` : ""}
+              </p>
+              <Link role="menuitem" href="/login" className={itemClass}>
+                <LogIn className="size-4" />
+                Log in
+              </Link>
+              <Link role="menuitem" href="/signup" className={itemClass}>
+                <UserPlus className="size-4" />
+                Sign up
+              </Link>
+            </>
+          )}
+        </div>
+      )}
+    </div>
   );
 }
 
