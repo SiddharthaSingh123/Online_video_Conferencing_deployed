@@ -16,5 +16,5 @@ def generate_meeting_code(db: Session) -> str:
 
 
 def build_invite_link(meeting_code: str) -> str:
-    frontend_url = os.getenv("FRONTEND_URL", "http://localhost:3000")
+    frontend_url = os.getenv("FRONTEND_URL", "http://localhost:3000").strip().rstrip("/")
     return f"{frontend_url}/j/{meeting_code}"

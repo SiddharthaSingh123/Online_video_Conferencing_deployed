@@ -13,7 +13,12 @@ from routers.users import router as users_router
 
 app = FastAPI(title="Zoom Clone API")
 
-cors_origins = os.getenv("CORS_ORIGINS", "http://localhost:3000").split(",")
+# Browsers send the Origin header without a trailing slash, so normalise each entry.
+cors_origins = [
+    origin.strip().rstrip("/")
+    for origin in os.getenv("CORS_ORIGINS", "http://localhost:3000").split(",")
+    if origin.strip()
+]
 app.add_middleware(
     CORSMiddleware,
     allow_origins=cors_origins,

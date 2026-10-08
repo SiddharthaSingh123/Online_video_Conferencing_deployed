@@ -1,4 +1,5 @@
-const API_URL = process.env.NEXT_PUBLIC_API_URL;
+// Read at build time (NEXT_PUBLIC_ vars are baked into the bundle). Trailing slash removed.
+const API_URL = process.env.NEXT_PUBLIC_API_URL?.replace(/\/+$/, "");
 
 export type User = {
   id: number;
