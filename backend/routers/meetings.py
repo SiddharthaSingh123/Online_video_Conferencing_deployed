@@ -88,13 +88,19 @@ def create_instant_meeting(payload: InstantMeetingCreate, db: Session = Depends(
 @router.post("", response_model=MeetingOut)
 def create_scheduled_meeting(payload: ScheduledMeetingCreate, db: Session = Depends(get_db)):
     host = _get_default_user(db)
+    # SQLite drops the timezone when saving, so convert to UTC first.
+    # A time sent without a timezone is assumed to already be UTC.
+    scheduled_start = payload.scheduled_start
+    if scheduled_start.tzinfo is not None:
+        scheduled_start = scheduled_start.astimezone(timezone.utc)
+
     meeting = Meeting(
         meeting_code=generate_meeting_code(db),
         title=payload.title,
         description=payload.description,
         host_id=host.id,
         type="scheduled",
-        scheduled_start=payload.scheduled_start,
+        scheduled_start=scheduled_start,
         duration_minutes=payload.duration_minutes,
         status="scheduled",
     )
