@@ -6,11 +6,12 @@ A Zoom-style video meetings web app built as a 2-hour full-stack assignment. You
 
 - Frontend: `<add Vercel URL>`
 - Backend API docs: `<add Render URL>/docs`
+- **Demo login:** `siddhartha@gmail.com` / `123456`
 
 ## Features
 
 - **Dashboard**: live clock and date, New meeting / Join / Schedule tiles, Upcoming and Recent meeting lists from the API, empty states. Meetings in progress are listed with a **Rejoin** button so the host can get back in.
-- **Accounts (optional)**: sign up and log in at `/signup` and `/login` (bcrypt passwords, 7-day JWT). Logged in, you only see and host your own meetings; logged out, the app uses the shared default account, exactly as before. The navbar profile menu shows Log in / Sign up or your name with Log out.
+- **Accounts**: the app opens on a login screen. Log in with the demo account (one click fills it in) or sign up at `/signup` (bcrypt passwords, 7-day JWT). You only see and host your own meetings. Guests join from an invite link without an account. The navbar profile menu shows your name with Log out.
 - **Instant meeting**: one click creates a live meeting and drops you into the room as host.
 - **Join meeting**: accepts `123 4567 890`, `1234567890`, or a full `.../j/1234567890` link; shows "Meeting not found" for bad IDs.
 - **Schedule meeting**: title, description, date, time and duration; shows the meeting ID and a copyable invite link when saved.
@@ -86,7 +87,7 @@ uvicorn main:app --reload
 
 The database file and demo data are created automatically on first start. API docs: http://localhost:8000/docs
 
-The demo data includes a live meeting, **Team standup (demo)**, with 3 guests in it: click **Rejoin** on the dashboard to try the host controls.
+Log in with the demo account, `siddhartha@gmail.com` / `123456`. Its data includes a live meeting, **Team standup (demo)**, with 3 guests in it: click **Rejoin** on the dashboard to try the host controls.
 
 There are no migrations (`create_all` only creates missing tables, it never adds columns to existing ones). To reset the demo data, or after pulling changes that add columns, stop the server, delete `backend/zoom.db`, and start it again.
 
@@ -122,7 +123,7 @@ All datetimes are stored in UTC. The frontend converts them to the viewer's loca
 | name         | string   |                  |
 | email        | string   | Unique           |
 | avatar_color | string   | Hex color        |
-| password_hash | string  | Nullable. bcrypt hash; null for the seeded default user (can't log in) |
+| password_hash | string  | Nullable bcrypt hash (a user without one can't log in) |
 | created_at   | datetime |                  |
 
 **`meetings`**
@@ -184,16 +185,16 @@ All datetimes are stored in UTC. The frontend converts them to the viewer's loca
 | POST   | `/meetings/{code}/participants/{id}/remove` | `{requester_participant_id}`               | Host only (403 otherwise), can't remove the host (400): sets `is_removed` and `left_at` |
 | POST   | `/meetings/{code}/participants/{id}/mute`   | `{muted}`                                  | A participant mutes or unmutes themselves                                      |
 
-**Current user:** endpoints that need one use the `get_current_user` dependency. It reads `Authorization: Bearer <token>`; with no token it returns the seeded default user, and an invalid or expired token gets a 401.
+**Current user:** endpoints that need one use the `get_current_user` dependency. It reads `Authorization: Bearer <token>`; with no token it returns the seeded demo account (handy for `/docs` and curl), and an invalid or expired token gets a 401.
 
 Meeting and invite responses include `invite_link` (`{FRONTEND_URL}/j/{code}`). Errors use FastAPI's `{detail: "..."}` format.
 
 ## Assumptions
 
-- **Accounts are optional.** Logged out, everyone shares the seeded default account ("Kartikeya"), which has no password. Logging in gives you your own meetings. The token is stored in `localStorage`.
+- **Log in first.** The dashboard needs a logged-in user (the demo account works), and the token is stored in `localStorage`. Guests can still join a meeting from its invite link without an account. The API itself falls back to the demo account when a request has no token.
 - **No real audio/video between people (no WebRTC).** Each person sees their own camera; other participants appear as avatar tiles. This was a deliberate scope decision for the time limit.
 - **Polling, no websockets.** The meeting room re-fetches the meeting every 3 seconds to pick up joins, leaves, mutes and removals.
-- **Host checks:** starting and ending a meeting require the current user to be its host. Mute all and Remove send the host's participant ID (`requester_participant_id`), which the server checks belongs to this meeting's host. Logged out, everyone is the default user, so these checks only protect meetings owned by real accounts.
+- **Host checks:** starting and ending a meeting require the current user to be its host. Mute all and Remove send the host's participant ID (`requester_participant_id`), which the server checks belongs to this meeting's host. Requests without a token act as the demo account, so these checks protect every other account's meetings.
 - **Identity is per browser tab.** Your display name, host status and participant ID live in `sessionStorage`.
 - **Meeting IDs are 10 digits**, shown as `123 4567 890`.
 - **SQLite on Render's free tier is not persistent.** Data resets when the service redeploys or restarts; the startup seed recreates the demo data so the app never boots empty.

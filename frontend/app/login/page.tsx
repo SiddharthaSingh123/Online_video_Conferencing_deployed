@@ -1,11 +1,16 @@
 "use client";
 
-import { useState } from "react";
+import { Suspense, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { LoaderCircle } from "lucide-react";
 import AuthLayout from "@/components/AuthLayout";
+import Notice from "@/components/Notice";
 import { useAuth } from "@/lib/auth";
+
+// The seeded demo account (see backend/seed.py), shown so anyone can try the app.
+const DEMO_EMAIL = "siddhartha@gmail.com";
+const DEMO_PASSWORD = "123456";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -31,7 +36,7 @@ export default function LoginPage() {
   return (
     <AuthLayout
       title="Sign in"
-      subtitle="Welcome back. Sign in to see your own meetings."
+      subtitle="Sign in to start, schedule and manage your meetings."
       footer={
         <>
           New here?{" "}
@@ -41,6 +46,28 @@ export default function LoginPage() {
         </>
       }
     >
+      {/* e.g. "You were removed by the host" for a guest who isn't logged in */}
+      <Suspense fallback={null}>
+        <Notice />
+      </Suspense>
+
+      <div className="mb-5 flex items-center justify-between gap-3 rounded-lg border border-line bg-panel py-1 pl-3 pr-1 text-sm">
+        <p className="min-w-0 text-muted">
+          Demo account: <span className="font-medium text-ink">{DEMO_EMAIL}</span> /{" "}
+          <span className="font-medium text-ink">{DEMO_PASSWORD}</span>
+        </p>
+        <button
+          type="button"
+          onClick={() => {
+            setEmail(DEMO_EMAIL);
+            setPassword(DEMO_PASSWORD);
+          }}
+          className="min-h-11 shrink-0 rounded-md px-2 font-medium text-zoom-blue hover:bg-white"
+        >
+          Use demo account
+        </button>
+      </div>
+
       {/* noValidate: we show our own inline messages instead of the browser's popups */}
       <form onSubmit={handleSubmit} noValidate className="flex flex-col gap-4">
         <div className="flex flex-col gap-1.5">

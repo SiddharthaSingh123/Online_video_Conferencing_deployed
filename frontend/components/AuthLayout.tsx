@@ -1,4 +1,3 @@
-import Link from "next/link";
 import Logo from "@/components/Logo";
 
 type AuthLayoutProps = {
@@ -24,12 +23,9 @@ export default function AuthLayout({ title, subtitle, children, footer }: AuthLa
           <div className="mt-6">{children}</div>
 
           <div className="mt-6 text-center text-sm text-muted">{footer}</div>
-          {/* Accounts are optional: the app works logged out as the default user. */}
-          <div className="mt-1 text-center">
-            <Link href="/" className="inline-flex min-h-11 items-center text-sm text-muted hover:text-ink hover:underline">
-              Continue without an account
-            </Link>
-          </div>
+          <p className="mt-2 text-center text-xs text-muted">
+            Joining someone else&apos;s meeting? Just open their invite link, no account needed.
+          </p>
         </div>
       </main>
     </div>

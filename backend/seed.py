@@ -5,18 +5,24 @@ from sqlalchemy.orm import Session
 
 from database import SessionLocal
 from models import User, Meeting, Participant
-from services.auth_service import DEFAULT_USER_EMAIL
+from services.auth_service import DEFAULT_USER_EMAIL, hash_password
 from services.meeting_service import generate_meeting_code
 
 GUEST_NAMES = ["Alex Chen", "Priya Patel", "Sam Rivera", "Jordan Lee", "Morgan Blake"]
+DEMO_PASSWORD = "123456"  # demo login: siddhartha@gmail.com / 123456
 
 
 def seed(db: Session) -> None:
     if db.query(User).filter(User.email == DEFAULT_USER_EMAIL).first():
         return  # already seeded
 
-    # No password: this is the account everyone uses while logged out.
-    user = User(name="Kartikeya", email=DEFAULT_USER_EMAIL, avatar_color="#0B5CFF")
+    # The demo account. It is also who the API acts as when a request has no token.
+    user = User(
+        name="Siddhartha",
+        email=DEFAULT_USER_EMAIL,
+        avatar_color="#0B5CFF",
+        password_hash=hash_password(DEMO_PASSWORD),
+    )
     db.add(user)
     db.commit()
     db.refresh(user)

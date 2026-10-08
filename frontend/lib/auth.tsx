@@ -3,11 +3,11 @@
 import { createContext, useContext, useEffect, useState } from "react";
 import { api, AUTH_EXPIRED_EVENT, clearToken, getToken, saveToken, type User } from "@/lib/api";
 
+export type AuthStatus = "loading" | "loggedIn" | "loggedOut";
+
 type AuthContextValue = {
-  // Who the app acts as: the logged-in user, or the default user when logged out.
-  // null only while the first /auth/me request is loading.
-  user: User | null;
-  loggedIn: boolean;
+  status: AuthStatus;
+  user: User | null; // the logged-in user; null while loading or when logged out
   login: (email: string, password: string) => Promise<void>;
   signup: (name: string, email: string, password: string) => Promise<void>;
   logout: () => void;
@@ -16,22 +16,22 @@ type AuthContextValue = {
 const AuthContext = createContext<AuthContextValue | null>(null);
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
+  const [status, setStatus] = useState<AuthStatus>("loading");
   const [user, setUser] = useState<User | null>(null);
-  const [loggedIn, setLoggedIn] = useState(false);
 
   useEffect(() => {
-    // Ask the server who we are (api.ts sends the saved token, if any).
+    // With a saved token, ask the server who we are. Without one we're simply logged out.
     const loadUser = () => {
-      const hasToken = getToken() !== null;
-      api
-        .getMe()
+      const request = getToken() ? api.getMe() : Promise.resolve(null);
+      request
         .then((me) => {
           setUser(me);
-          setLoggedIn(hasToken);
+          setStatus(me ? "loggedIn" : "loggedOut");
         })
         .catch(() => {
-          // A bad token was already cleared by api.ts, which also fires AUTH_EXPIRED_EVENT,
-          // so this runs again and loads the default user.
+          // Expired/invalid token (api.ts already cleared it) or server unreachable.
+          setUser(null);
+          setStatus("loggedOut");
         });
     };
 
@@ -44,25 +44,24 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const result = await api.login(email, password);
     saveToken(result.token);
     setUser(result.user);
-    setLoggedIn(true);
+    setStatus("loggedIn");
   }
 
   async function signup(name: string, email: string, password: string) {
     const result = await api.signup(name, email, password);
     saveToken(result.token);
     setUser(result.user);
-    setLoggedIn(true);
+    setStatus("loggedIn");
   }
 
-  // Reload the page so every list re-fetches as the logged-out (default) user
-  // and nothing from the account is left on screen.
+  // Reload so nothing from the account stays on screen; the dashboard then sends you to /login.
   function logout() {
     clearToken();
     window.location.reload();
   }
 
   return (
-    <AuthContext.Provider value={{ user, loggedIn, login, signup, logout }}>{children}</AuthContext.Provider>
+    <AuthContext.Provider value={{ status, user, login, signup, logout }}>{children}</AuthContext.Provider>
   );
 }
 

@@ -1,9 +1,9 @@
 "use client";
 
-import { useRouter, useSearchParams } from "next/navigation";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { Info, X } from "lucide-react";
 
-// Messages the meeting room can send back to the dashboard as /?notice=<key>.
+// Messages the meeting room sends back as ?notice=<key> (shown on the dashboard or the login page).
 const NOTICES = new Map([
   ["removed", "You were removed by the host"],
   ["ended", "The host ended the meeting"],
@@ -11,6 +11,7 @@ const NOTICES = new Map([
 
 export default function Notice() {
   const searchParams = useSearchParams();
+  const pathname = usePathname();
   const router = useRouter();
   const message = NOTICES.get(searchParams.get("notice") ?? "");
   if (!message) return null;
@@ -23,7 +24,7 @@ export default function Notice() {
       <Info className="size-4 shrink-0" />
       <span className="flex-1">{message}</span>
       <button
-        onClick={() => router.replace("/")}
+        onClick={() => router.replace(pathname)}
         aria-label="Dismiss"
         className="flex size-11 shrink-0 items-center justify-center rounded-md hover:bg-amber-100"
       >

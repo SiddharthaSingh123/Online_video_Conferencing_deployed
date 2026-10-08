@@ -6,7 +6,7 @@ Goal: a working, deployed Zoom-style web app. Must-haves: Landing Dashboard, Ins
 - Frontend: Next.js (App Router, TypeScript, Tailwind CSS, lucide-react) in `/frontend`. Behaves as a single-page app: all pages are client components that fetch from the API in `useEffect`.
 - Backend: Python FastAPI + SQLAlchemy + SQLite in `/backend`.
 - Database: SQLite file `backend/zoom.db`.
-- Authentication is optional: users can sign up and log in (bcrypt passwords, 7-day JWT). With no token, the backend falls back to the seeded default user, so the app still works without an account.
+- Authentication: the app opens on a login screen. Seeded demo account `siddhartha@gmail.com` / `123456`, or sign up (bcrypt passwords, 7-day JWT). Guests join meetings from an invite link without an account. With no token, the API falls back to the demo account.
 
 ## Hard rules
 1. Original work only. Use lucide-react icons. Do not copy Zoom's assets, logos, or code.

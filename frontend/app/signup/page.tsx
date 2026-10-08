@@ -54,7 +54,7 @@ export default function SignupPage() {
   return (
     <AuthLayout
       title="Create your account"
-      subtitle="Optional: without an account you use the shared default one."
+      subtitle="Create your own account to start and schedule meetings."
       footer={
         <>
           Already have an account?{" "}

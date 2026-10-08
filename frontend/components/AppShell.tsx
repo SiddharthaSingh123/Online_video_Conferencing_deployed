@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import {
   Bell,
   CalendarDays,
@@ -10,14 +10,13 @@ import {
   ChevronRight,
   Contact,
   House,
-  LogIn,
+  LoaderCircle,
   LogOut,
   Menu,
   MessageSquare,
   Phone,
   Search,
   Settings,
-  UserPlus,
   Video,
   X,
   type LucideIcon,
@@ -38,9 +37,17 @@ const NAV_ITEMS: NavItem[] = [
   { label: "Contacts", icon: Contact },
 ];
 
+// Frame for the logged-in pages (dashboard, meetings). Logged-out visitors go to /login.
 export default function AppShell({ children }: { children: React.ReactNode }) {
+  const { status } = useAuth();
+  const router = useRouter();
   // Below lg the sidebar is hidden and slides in as a drawer from the hamburger button.
   const [drawerOpen, setDrawerOpen] = useState(false);
+
+  useEffect(() => {
+    // Keep ?notice=... (e.g. "You were removed by the host") so the login page can show it.
+    if (status === "loggedOut") router.replace(`/login${window.location.search}`);
+  }, [status, router]);
 
   useEffect(() => {
     if (!drawerOpen) return;
@@ -50,6 +57,14 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
   }, [drawerOpen]);
+
+  if (status !== "loggedIn") {
+    return (
+      <div className="flex h-dvh items-center justify-center bg-shell text-muted">
+        <LoaderCircle className="size-8 animate-spin" />
+      </div>
+    );
+  }
 
   return (
     <div className="flex h-dvh flex-col bg-shell">
@@ -132,9 +147,9 @@ function TopNav({ onMenuClick }: { onMenuClick: () => void }) {
   );
 }
 
-// Avatar button with a dropdown: Log in / Sign up when logged out, name + Log out when logged in.
+// Avatar button with a dropdown showing who is logged in and a Log out button.
 function ProfileMenu() {
-  const { user, loggedIn, logout } = useAuth();
+  const { user, logout } = useAuth();
   const [open, setOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
 
@@ -176,32 +191,14 @@ function ProfileMenu() {
 
       {open && (
         <div role="menu" className="absolute right-0 top-full z-40 mt-1 w-64 rounded-xl border border-line bg-white p-2 shadow-lg">
-          {loggedIn && user ? (
-            <>
-              <div className="px-3 py-2">
-                <p className="truncate text-sm font-semibold text-ink">{user.name}</p>
-                <p className="truncate text-xs text-muted">{user.email}</p>
-              </div>
-              <button role="menuitem" onClick={logout} className={itemClass}>
-                <LogOut className="size-4" />
-                Log out
-              </button>
-            </>
-          ) : (
-            <>
-              <p className="px-3 py-2 text-xs text-muted">
-                Not logged in{user ? `: using the default account (${user.name})` : ""}
-              </p>
-              <Link role="menuitem" href="/login" className={itemClass}>
-                <LogIn className="size-4" />
-                Log in
-              </Link>
-              <Link role="menuitem" href="/signup" className={itemClass}>
-                <UserPlus className="size-4" />
-                Sign up
-              </Link>
-            </>
-          )}
+          <div className="px-3 py-2">
+            <p className="truncate text-sm font-semibold text-ink">{user?.name}</p>
+            <p className="truncate text-xs text-muted">{user?.email}</p>
+          </div>
+          <button role="menuitem" onClick={logout} className={itemClass}>
+            <LogOut className="size-4" />
+            Log out
+          </button>
         </div>
       )}
     </div>

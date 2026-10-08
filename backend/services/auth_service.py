@@ -17,7 +17,7 @@ from sqlalchemy.orm import Session
 from database import get_db
 from models import User
 
-DEFAULT_USER_EMAIL = "user@example.com"  # the seeded user everyone is when logged out
+DEFAULT_USER_EMAIL = "siddhartha@gmail.com"  # seeded demo account; the API acts as it when there's no token
 TOKEN_ALGORITHM = "HS256"
 TOKEN_LIFETIME = timedelta(days=7)
 EMAIL_PATTERN = re.compile(r"^[^@\s]+@[^@\s]+\.[^@\s]+$")
