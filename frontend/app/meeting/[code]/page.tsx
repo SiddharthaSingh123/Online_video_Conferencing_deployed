@@ -10,6 +10,7 @@ import ParticipantsPanel from "@/components/ParticipantsPanel";
 import VideoTile from "@/components/VideoTile";
 import { api, ApiError, type JoinResult, type MeetingDetail, type Participant } from "@/lib/api";
 import { useLocalMedia } from "@/lib/useLocalMedia";
+import { useWebRTC } from "@/lib/useWebRTC";
 import {
   clearMeetingSession,
   copyToClipboard,
@@ -40,6 +41,8 @@ export default function MeetingRoomPage() {
   const [micOn, setMicOn] = useState(true);
   const [videoOn, setVideoOn] = useState(true);
   const { stream, hasVideo, error: mediaError, stop: stopMedia } = useLocalMedia(micOn, videoOn);
+  // WebRTC: once we know who we are (me.id) and have a local stream, connect to other peers.
+  const { remoteStreams } = useWebRTC(code, me?.id ?? null, stream);
 
   const [showParticipants, setShowParticipants] = useState(false);
   const [inviteCopied, setInviteCopied] = useState(false);
@@ -225,13 +228,18 @@ export default function MeetingRoomPage() {
           <div className={`m-auto grid w-full gap-3 ${gridClass(participants.length)}`}>
             {participants.map((p) => {
               const isMe = p.id === me.id;
+              const remoteStream = remoteStreams[String(p.id)] ?? null;
               return (
                 <VideoTile
                   key={p.id}
                   name={p.display_name}
                   label={p.role === "host" ? "(Host)" : undefined}
-                  stream={isMe ? stream : null}
-                  showVideo={isMe && videoOn && hasVideo}
+                  // Local tile: my camera stream. Remote tile: the peer's WebRTC stream.
+                  stream={isMe ? stream : remoteStream}
+                  showVideo={isMe ? (videoOn && hasVideo) : !!remoteStream}
+                  // Local tile is muted so I don't hear my own voice (echo).
+                  // Remote tiles are NOT muted so I can hear the other person.
+                  muted={isMe}
                   micOff={isMe ? !micOn : p.is_muted}
                 />
               );

@@ -10,6 +10,7 @@ from database import Base, engine
 from seed import run_seed
 from routers.auth import router as auth_router
 from routers.meetings import router as meetings_router
+from routers.ws import router as ws_router
 
 app = FastAPI(title="Zoom Clone API")
 
@@ -36,6 +37,7 @@ def on_startup():
 
 app.include_router(auth_router)
 app.include_router(meetings_router)
+app.include_router(ws_router)
 
 
 @app.get("/health")

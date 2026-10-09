@@ -10,10 +10,12 @@ type VideoTileProps = {
   stream?: MediaStream | null;
   showVideo?: boolean;
   micOff?: boolean;
+  // true for local tile (no echo); false/omitted for remote tiles so we hear them
+  muted?: boolean;
 };
 
 // One participant square: live camera if available, otherwise an initials avatar.
-export default function VideoTile({ name, label, stream, showVideo = false, micOff = false }: VideoTileProps) {
+export default function VideoTile({ name, label, stream, showVideo = false, micOff = false, muted = false }: VideoTileProps) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const videoVisible = showVideo && !!stream;
 
@@ -24,8 +26,9 @@ export default function VideoTile({ name, label, stream, showVideo = false, micO
   return (
     <div className="relative flex aspect-video w-full items-center justify-center overflow-hidden rounded-xl bg-[#2b2b2b]">
       {videoVisible ? (
-        // Mirrored like a real mirror; muted so you don't hear yourself.
-        <video ref={videoRef} autoPlay playsInline muted className="h-full w-full -scale-x-100 object-cover" />
+        // Local tile is muted (no echo). Remote tiles play audio so you can hear others.
+        // Local tile is mirrored so it looks like a mirror.
+        <video ref={videoRef} autoPlay playsInline muted={muted} className={`h-full w-full object-cover ${muted ? "-scale-x-100" : ""}`} />
       ) : (
         <div
           className="flex size-20 items-center justify-center rounded-full text-2xl font-semibold text-white"
