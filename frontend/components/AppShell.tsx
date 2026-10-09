@@ -10,6 +10,7 @@ import {
   ChevronRight,
   Contact,
   House,
+  Info,
   LoaderCircle,
   LogOut,
   Menu,
@@ -43,6 +44,15 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   // Below lg the sidebar is hidden and slides in as a drawer from the hamburger button.
   const [drawerOpen, setDrawerOpen] = useState(false);
+  // Name of a not-yet-built feature the user just clicked, shown in a short toast.
+  const [comingSoon, setComingSoon] = useState<string | null>(null);
+  const toastTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+
+  function showComingSoon(feature: string) {
+    setComingSoon(feature);
+    clearTimeout(toastTimer.current); // restart the timer if another item is clicked
+    toastTimer.current = setTimeout(() => setComingSoon(null), 2500);
+  }
 
   useEffect(() => {
     // Keep ?notice=... (e.g. "You were removed by the host") so the login page can show it.
@@ -68,10 +78,10 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
 
   return (
     <div className="flex h-dvh flex-col bg-shell">
-      <TopNav onMenuClick={() => setDrawerOpen(true)} />
+      <TopNav onMenuClick={() => setDrawerOpen(true)} onComingSoon={showComingSoon} />
       <div className="flex min-h-0 flex-1">
         <div className="hidden w-[104px] shrink-0 lg:flex">
-          <SidebarNav />
+          <SidebarNav onComingSoon={showComingSoon} />
         </div>
         <main className="mx-2 mb-2 flex-1 overflow-y-auto rounded-xl bg-white lg:ml-0">{children}</main>
       </div>
@@ -94,14 +104,34 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
           >
             <X className="size-5" />
           </button>
-          <SidebarNav onNavigate={() => setDrawerOpen(false)} />
+          <SidebarNav
+            onNavigate={() => setDrawerOpen(false)}
+            onComingSoon={(feature) => {
+              setDrawerOpen(false);
+              showComingSoon(feature);
+            }}
+          />
         </div>
       </div>
+
+      {comingSoon && (
+        <div
+          role="status"
+          className="fixed bottom-6 left-1/2 z-[60] flex w-max max-w-[calc(100vw-2rem)] -translate-x-1/2 items-center gap-2 rounded-lg bg-ink px-4 py-3 text-sm text-white shadow-lg"
+        >
+          <Info className="size-4 shrink-0" />
+          <span>
+            <strong>{comingSoon}</strong> will be available soon.
+          </span>
+        </div>
+      )}
     </div>
   );
 }
 
-function TopNav({ onMenuClick }: { onMenuClick: () => void }) {
+type TopNavProps = { onMenuClick: () => void; onComingSoon: (feature: string) => void };
+
+function TopNav({ onMenuClick, onComingSoon }: TopNavProps) {
   // On mobile the search box collapses to an icon that opens it on its own row.
   const [searchOpen, setSearchOpen] = useState(false);
 
@@ -132,8 +162,20 @@ function TopNav({ onMenuClick }: { onMenuClick: () => void }) {
           >
             <Search className="size-5" />
           </button>
-          <Bell className="size-5 text-ink" />
-          <Settings className="size-5 text-ink" />
+          <button
+            onClick={() => onComingSoon("Notifications")}
+            aria-label="Notifications"
+            className="flex size-11 items-center justify-center rounded-lg text-ink hover:bg-black/5"
+          >
+            <Bell className="size-5" />
+          </button>
+          <button
+            onClick={() => onComingSoon("Settings")}
+            aria-label="Settings"
+            className="flex size-11 items-center justify-center rounded-lg text-ink hover:bg-black/5"
+          >
+            <Settings className="size-5" />
+          </button>
           <ProfileMenu />
         </div>
       </header>
@@ -218,7 +260,9 @@ function SearchBox({ autoFocus = false }: { autoFocus?: boolean }) {
   );
 }
 
-function SidebarNav({ onNavigate }: { onNavigate?: () => void }) {
+type SidebarNavProps = { onNavigate?: () => void; onComingSoon: (feature: string) => void };
+
+function SidebarNav({ onNavigate, onComingSoon }: SidebarNavProps) {
   const pathname = usePathname();
 
   return (
@@ -240,16 +284,20 @@ function SidebarNav({ onNavigate }: { onNavigate?: () => void }) {
             {content}
           </Link>
         ) : (
-          <div key={item.label} className={`${className} cursor-default opacity-80`}>
+          // Not built yet: clicking shows a "will be available soon" message.
+          <button key={item.label} className={className} onClick={() => onComingSoon(item.label)}>
             {content}
-          </div>
+          </button>
         );
       })}
 
-      <div className="mt-auto flex w-full flex-col items-center gap-1.5 py-3 text-ink opacity-80">
+      <button
+        className="mt-auto flex w-full flex-col items-center gap-1.5 rounded-xl py-3 text-ink hover:bg-black/5"
+        onClick={() => onComingSoon("Settings")}
+      >
         <Settings className="size-5" strokeWidth={1.75} />
         <span className="text-xs">Settings</span>
-      </div>
+      </button>
     </nav>
   );
 }
