@@ -15,7 +15,7 @@ class User(Base):
     avatar_color = Column(String, nullable=False, default="#0B5CFF")
     # bcrypt hash of the password (nullable: a user without one simply can't log in).
     password_hash = Column(String, nullable=True)
-    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
+    created_at = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
 
     meetings = relationship("Meeting", back_populates="host")
     participations = relationship("Participant", back_populates="user")

@@ -18,6 +18,10 @@ services:
       # Comma-separated origins allowed to call the API, e.g. https://zoom-clone.vercel.app
       - key: CORS_ORIGINS
         sync: false
+      # Postgres connection string from Neon (Dashboard -> Connection string). Without it the
+      # app uses SQLite, which Render's free plan wipes on every restart.
+      - key: DATABASE_URL
+        sync: false
       # Signs login tokens. Render generates a random value on the first deploy.
       - key: SECRET_KEY
         generateValue: true

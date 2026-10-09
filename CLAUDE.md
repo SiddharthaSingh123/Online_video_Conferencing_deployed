@@ -5,7 +5,7 @@ Goal: a working, deployed Zoom-style web app. Must-haves: Landing Dashboard, Ins
 ## Stack (fixed, do not change)
 - Frontend: Next.js (App Router, TypeScript, Tailwind CSS, lucide-react) in `/frontend`. Behaves as a single-page app: all pages are client components that fetch from the API in `useEffect`.
 - Backend: Python FastAPI + SQLAlchemy + SQLite in `/backend`.
-- Database: SQLite file `backend/zoom.db`.
+- Database: SQLite file `backend/zoom.db` locally. In production, set `DATABASE_URL` to a Postgres URL (free Neon database) so data survives Render restarts.
 - Authentication: the app opens on a login screen. Seeded demo account `siddhartha@gmail.com` / `123456`, or sign up (bcrypt passwords, 7-day JWT). Guests join meetings from an invite link without an account. With no token, the API falls back to the demo account.
 
 ## Hard rules

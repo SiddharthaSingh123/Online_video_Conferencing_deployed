@@ -16,8 +16,8 @@ class Participant(Base):
     role = Column(String, nullable=False, default="participant")  # host | participant
     is_muted = Column(Boolean, nullable=False, default=False)
     is_removed = Column(Boolean, nullable=False, default=False)  # removed by the host
-    joined_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
-    left_at = Column(DateTime, nullable=True)
+    joined_at = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
+    left_at = Column(DateTime(timezone=True), nullable=True)
 
     meeting = relationship("Meeting", back_populates="participants")
     user = relationship("User", back_populates="participations")

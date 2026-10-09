@@ -90,10 +90,12 @@ def create_scheduled_meeting(
     db: Session = Depends(get_db),
     host: User = Depends(get_current_user),
 ):
-    # SQLite drops the timezone when saving, so convert to UTC first.
+    # Store in UTC (SQLite drops the timezone when saving).
     # A time sent without a timezone is assumed to already be UTC.
     scheduled_start = payload.scheduled_start
-    if scheduled_start.tzinfo is not None:
+    if scheduled_start.tzinfo is None:
+        scheduled_start = scheduled_start.replace(tzinfo=timezone.utc)
+    else:
         scheduled_start = scheduled_start.astimezone(timezone.utc)
 
     meeting = Meeting(
